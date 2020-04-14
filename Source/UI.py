@@ -21,14 +21,14 @@ screen = pygame.display.set_mode((width, height), 1, 16)
 pygame.display.set_caption("3DAB")
 
 # Images
-background_img = pygame.image.load('Images/bg.png')
-record_img = pygame.image.load('Images/recordIcon.png')
-x_img = pygame.image.load('Images/xicon.png')
-play_img = pygame.image.load('Images/playIcon.png')
-save_img = pygame.image.load('Images/saveIcon.png')
-circle_img = pygame.image.load('Images/circle.png')
-pb_img = pygame.image.load('Images/pb.png')
-recordb_img = pygame.image.load('Images/recordb.png')
+background_img = pygame.image.load('Dependencies/Images/bg.png')
+record_img = pygame.image.load('Dependencies/Images/recordIcon.png')
+x_img = pygame.image.load('Dependencies/Images/xicon.png')
+play_img = pygame.image.load('Dependencies/Images/playIcon.png')
+save_img = pygame.image.load('Dependencies/Images/saveIcon.png')
+circle_img = pygame.image.load('Dependencies/Images/circle.png')
+pb_img = pygame.image.load('Dependencies/Images/pb.png')
+recordb_img = pygame.image.load('Dependencies/Images/recordb.png')
 
 
 # starting position
