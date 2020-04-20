@@ -5,7 +5,7 @@ import soundfile as sf
 from scipy.signal import *
 import threading
 
-from Source import UI_class
+from Source import interface
 
 population = []
 
@@ -13,7 +13,7 @@ population = []
 
 
 
-interface = UI_class.Interface()
+interface = interface.Interface()
 while True:
     interface.update()
     current_angle = interface.get_value()
