@@ -64,3 +64,6 @@ while interface.running:
     if interface.audio_manager.playback_started:
         recording.play()
 
+
+# TODO Listener Interface
+# TODO Continues recording of flexible length (stopped when told to do so)

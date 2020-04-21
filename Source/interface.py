@@ -27,10 +27,6 @@ class Interface:
             self.radius = self.rect.width / 2 * self.initial_scale_value
             self.shown = shown
 
-        def get_distance(self, target):
-            abs_pos = self.get_abs_pos()
-            return np.sqrt(np.square(abs_pos[0] - target[0]) + np.square(abs_pos[1] - target[1]))
-
         def get_angle(self, target):
             abs_pos = self.get_abs_pos()
 
@@ -43,6 +39,21 @@ class Interface:
             angle = np.rad2deg(np.arctan(abs((abs_pos[1] - target[1])) / abs((abs_pos[0] - target[0]))))
 
             return (quarter - 1) * 90 + int(quarter == 2 or quarter == 4) * angle + int(quarter == 1 or quarter == 3) * (90 - angle)
+
+        def get_distance(self, target):
+            abs_pos = self.get_abs_pos()
+            return np.sqrt(np.square(abs_pos[0] - target[0]) + np.square(abs_pos[1] - target[1]))
+
+        def get_moved_by_polar(self, polar):
+            abs_pos = self.get_abs_pos()
+
+            distance = polar[0]
+            angle = polar[1]
+
+            if angle <= 180:
+                return int(abs_pos[0] + np.sin(np.deg2rad(180 - angle)) * distance), int(abs_pos[1] + np.cos(np.deg2rad(180 - angle)) * distance)
+            else:
+                return int(abs_pos[0] - np.sin(np.deg2rad(360 - angle)) * distance), int(abs_pos[1] - np.cos(np.deg2rad(360 - angle)) * distance)
 
         def get_abs_pos(self):
             return np.multiply(self.pos, self.surface.get_size()).astype(int)
@@ -103,49 +114,59 @@ class CreatorInterface(Interface):
 
     class AudioController:
 
+        NEW_ANGLE_THRESHOLD = 5
+
         def __init__(self, head, circle, reverb_buttons):
             self.head = head
             self.circle = circle
             self.reverb_buttons = reverb_buttons
-            self.distances = [0.2, 0.4, 0.8, 1.2]
-            self.selection_shown = False
-            self.selection = [0, 0]
-            self.time = 0
+            self.radii = [0.2, 0.4, 0.8, 1.2]
 
-        def polar_to_cartesian(self, polar_coord):
-            x = int(np.cos(np.deg2rad(polar_coord[0])) * polar_coord[1])
-            y = int(np.sin(np.deg2rad(polar_coord[0])) * polar_coord[1])
-            return x, y
+            self.current_angle = 0
+            self.current_radius = 0
+            self.current_reverb = 0
+            self.current_time = 0
+            self.audio_filter_data = []
 
         def display(self, surface):
             self.head.display()
 
-            for distance in self.distances:
-                self.circle.display(0, distance)
+            for r in self.radii:
+                self.circle.display(0, r)
 
-            if self.selection_shown:
-                cartesian_pos = self.polar_to_cartesian(self.selection)
-                abs_pos = self.circle.get_abs_pos()
-                pygame.draw.circle(surface, (255, 255, 255), (abs_pos[0] + cartesian_pos[0], abs_pos[1] + cartesian_pos[1]), 20)
-                print("drawing! ")
+            if self.current_radius > 0:
+                selection_pos = self.head.get_moved_by_polar((self.current_radius * self.circle.radius, self.current_angle))
+                pygame.draw.circle(surface, (255, 255, 255), selection_pos, 20)
 
             # surface!!
 
         def check_events(self, mouse_pos, mouse_pressed, mouse_clicked):
+
+            previous_angle, previous_radius, previous_reverb = self.current_angle, self.current_radius, self.current_reverb
+
             for reverb_button in self.reverb_buttons.values():
                 mouse_inside = reverb_button.get_distance(mouse_pos) < reverb_button.radius
                 reverb_button.hovered, reverb_button.pressed = mouse_inside, mouse_inside and mouse_pressed
+                # find which reverb button, if any, is active now
 
-            # what happens if some button is pressed
 
-            for distance in self.distances:
+            distance_to_mouse = self.circle.get_distance(mouse_pos)
+            mouse_inside = distance_to_mouse < self.circle.radius * 1.4 and mouse_pressed
+            if mouse_inside:
+                shortest_distance = self.circle.radius * 1.4
+                self.current_angle = self.head.get_angle(mouse_pos)
+                self.current_radius = 0
+                for r in self.radii:
+                    distance = np.abs(distance_to_mouse - self.circle.radius * r)
+                    if distance < shortest_distance:
+                        shortest_distance = distance
+                        self.current_radius = r
 
-                mouse_inside = abs(self.circle.get_distance(mouse_pos) - self.circle.radius * distance) < 10
-                self.selection_shown = mouse_inside and mouse_pressed
-                if self.selection_shown:
-                    self.selection = [self.circle.radius * distance, self.circle.get_angle(mouse_pos)]
-                    print("Selection: ", self.selection)
-                    return
+            if abs(self.current_angle - previous_angle) < self.NEW_ANGLE_THRESHOLD \
+                    or self.current_radius != previous_radius or self.current_reverb != previous_reverb:
+
+                if len(self.audio_filter_data) == 0:
+                    self.audio_filter_data.append((self.current_time, self.current_angle, self.current_radius, self.current_reverb))
 
     class AudioManager:
 
@@ -201,14 +222,15 @@ class CreatorInterface(Interface):
             if event.type == pygame.QUIT:
                 self.running = False
             elif event.type == pygame.KEYDOWN and event.unicode == 'c':
-                self.audio_controller.head = None
+                self.audio_controller.selection = [0, 0]
             elif event.type == pygame.MOUSEBUTTONUP and mouse_pressed:
                 mouse_clicked = True
 
         self.audio_manager.check_events(mouse_pos, mouse_pressed, mouse_clicked)
         self.audio_controller.check_events(mouse_pos, mouse_pressed, mouse_clicked)
 
-        self.audio_controller.time += 1
+        if self.audio_manager.recording_in_process:
+            self.audio_controller.current_time += 1
 
         # display all the visuals
         self.screen.fill((20, 40, 80))
