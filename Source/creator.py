@@ -58,13 +58,24 @@ while interface.running:
         rec_data = recording.get_data()
         audio_data = interface.audio_controller.full_audio_data
 
-        print(rec_data.shape)
+        audio_data = np.array(audio_data)
+
+        total_frames = np.sum(audio_data[:, 1])
+        audio_data[:, 1] = np.divide(audio_data[:, 1], total_frames)
+
         print(audio_data)
+        #
+        # print(rec_data.shape)
+        # print(audio_data)
+        # print(audio_data.shape)
+        #
+        # print(audio_data[:, 0])
+
+
 
     # if interface.audio_manager.playback_started:
     #     recording.play()
 
 
 # TODO Listener Interface
-# TODO
 # TODO Continues recording of flexible length (stopped when told to do so)

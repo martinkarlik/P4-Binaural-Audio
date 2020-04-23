@@ -165,14 +165,13 @@ class CreatorInterface(Interface):
                         self.current_audio_data["radius"] != self.previous_audio_data["radius"] or \
                         self.current_audio_data["reverb"] != self.previous_audio_data["reverb"]:
 
-                    self.full_audio_data.append((self.previous_audio_data, self.time))
-                    print((self.previous_audio_data, self.time))
+                    self.full_audio_data.append([self.previous_audio_data, self.time])
                     self.previous_audio_data = self.current_audio_data.copy()
 
-            elif recording_state["stopped"]:
-                self.full_audio_data.append((self.current_audio_data, self.time))
-                print(self.full_audio_data)
+                    self.time = 0
 
+            elif recording_state["stopped"]:
+                self.full_audio_data.append([self.current_audio_data, self.time])
     class AudioManager:
 
         def __init__(self, buttons):
@@ -252,3 +251,10 @@ class ListenerInterface(Interface):
 
 # make buttons pressed infos (recording, playback) dictionaries
 
+# data = []
+# pos_data = [dict(a=1, b=2), 10]
+#
+# data.append(pos_data)
+# data.append(pos_data)
+#
+# numpy_array = np.array(data)
