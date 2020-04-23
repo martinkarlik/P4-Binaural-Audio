@@ -40,9 +40,6 @@ class RecordingThread(threading.Thread):
 
 
 interface = interface.CreatorInterface()
-
-
-audio_positional_data = []
 recording = RecordingThread(1)
 
 while interface.running:
@@ -57,8 +54,12 @@ while interface.running:
     elif interface.audio_manager.recording_state["stopped"]:
         recording.keep_on = False
         recording.join()
-        recording.get_data()
-        interface.audio_controller.full_audio_data
+
+        rec_data = recording.get_data()
+        audio_data = interface.audio_controller.full_audio_data
+
+        print(rec_data.shape)
+        print(audio_data)
 
     # if interface.audio_manager.playback_started:
     #     recording.play()
