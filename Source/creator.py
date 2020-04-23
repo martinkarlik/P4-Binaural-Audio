@@ -59,15 +59,36 @@ while interface.running:
         rec_data = recording.get_data()
         audio_data = interface.audio_controller.full_audio_data
 
-        print(rec_data.shape)
-        print(audio_data)
+        audio_data = np.array(audio_data)
 
-        tmp_reverb_signal = audio_processing.add_reverb(rec_data, recording.sampling_freq,
-                                                        interface.audio_controller.current_audio_data)
+        total_frames = np.sum(audio_data[:, 1])
+        audio_data[:, 1] = np.divide(audio_data[:, 1], total_frames)
+
+        for sample in audio_data:
+            sample[1] = int(sample[1] * len(rec_data))
+
+        audio_data[len(audio_data) - 1][1] += abs(len(rec_data) - np.sum(audio_data[:, 1]))
+
+        reverb_data = audio_processing.remove_redundant_reverb(audio_data)
+
+        output = []
+        elapsed_duration = 0
+        for sample in reverb_data:
+            start_index = elapsed_duration
+            elapsed_duration += sample[1]
+            end_index = elapsed_duration
+
+            result = audio_processing.add_reverb(rec_data[start_index:end_index], recording.sampling_freq, sample[0])
+            output.append(result)
+
+        sd.play(output)
+        sd.wait()
+
+
+        # tmp_reverb_signal = audio_processing.add_reverb(rec_data, recording.sampling_freq, interface.audio_controller.current_audio_data)
     # if interface.audio_manager.playback_started:
     #     recording.play()
 
 
 # TODO Listener Interface
-# TODO
 # TODO Continues recording of flexible length (stopped when told to do so)
