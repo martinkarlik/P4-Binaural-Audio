@@ -5,34 +5,23 @@ import soundfile as sf
 from scipy.signal import *
 import threading
 
-from Source import UI
+from Source import interface
 
 population = []
 
 
-class InterfaceThread(threading.Thread):
-
-    def __init__(self, thread_id):
-        threading.Thread.__init__(self)
-        self.threadID = thread_id
-
-    def run(self):
-        interface = UI.Interface()
-        population.append(interface.get_value())
-        while True:
-            interface.update()
-            current_angle = interface.get_value()
-            print("Abs: ", abs(current_angle - population[len(population) - 1]))
-            print("Last elements: ", population[len(population) - 1], " Current element: ", current_angle)
-            print("Len: ", len(population))
-            if abs(current_angle - population[len(population) - 1]) > interface.new_angle_threshold:
-                population.append(current_angle)
 
 
 
+interface = interface.Interface()
+while True:
+    interface.update()
+    current_angle = interface.get_value()
+    # if recording button pressed:
+    # start thread
+    recording_thread = RecordingThread(1)
+    recording_thread.start()
 
-interface_thread = InterfaceThread(1)
-interface_thread.start()
 
 
 hrtf_database = sofa.Database.open('../Dependencies/Sofa/QU_KEMAR_anechoic_1m.sofa')
