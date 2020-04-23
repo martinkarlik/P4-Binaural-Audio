@@ -105,10 +105,10 @@ class CreatorInterface(Interface):
             self.Button(pygame.image.load('../Dependencies/Images/head.png'), [0.269, 0.4]),
             self.Button(pygame.image.load('../Dependencies/Images/circle.png'), [0.269, 0.4]),
             dict(
-                anechoic=self.Button(pygame.image.load('../Dependencies/Images/head.png'), [0.269, 0.499]),
-                forest=self.Button(pygame.image.load('../Dependencies/Images/head.png'), [0.499, 0.499]),
-                church=self.Button(pygame.image.load('../Dependencies/Images/head.png'), [0.499, 0.499]),
-                cave=self.Button(pygame.image.load('../Dependencies/Images/head.png'), [0.499, 0.499])
+                anechoic=self.Button(pygame.image.load('../Dependencies/Images/anechoic.png'), [0.146, 0.911]),
+                forest=self.Button(pygame.image.load('../Dependencies/Images/forest.png'), [0.229, 0.911]),
+                church=self.Button(pygame.image.load('../Dependencies/Images/church.png'), [0.312, 0.911]),
+                cave=self.Button(pygame.image.load('../Dependencies/Images/cave.png'), [0.397, 0.911])
             )
         )
 
