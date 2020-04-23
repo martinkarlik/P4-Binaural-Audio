@@ -187,7 +187,7 @@ class CreatorInterface(Interface):
                         self.current_audio_data["radius"] != self.previous_audio_data["radius"] or \
                         self.current_audio_data["reverb"] != self.previous_audio_data["reverb"]:
                     self.full_audio_data.append((self.previous_audio_data, self.time))
-                    print((self.previous_audio_data, self.time))
+
                     self.previous_audio_data = self.current_audio_data.copy()
 
                     self.time = 0
