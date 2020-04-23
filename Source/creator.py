@@ -25,45 +25,46 @@ class RecordingThread(threading.Thread):
             print("Recording new chunk.")
             current_chunk = sd.rec(self.rec_time * self.sampling_freq)
             sd.wait()
-            print(self.mic_data.size)
             if self.mic_data.size == 0:
                 self.mic_data = current_chunk
             else:
                 self.mic_data = np.append(self.mic_data, current_chunk)
 
     def play(self):
-        print("Playing.")
         print(self.mic_data.shape)
         sd.play(self.mic_data, self.sampling_freq)
         sd.wait()
-        print("Done.")
 
     def get_data(self):
         return self.mic_data
 
 
 interface = interface.CreatorInterface()
-
-
-audio_positional_data = []
 recording = RecordingThread(1)
 
 while interface.running:
     interface.update()
 
-    if interface.audio_manager.recording_started:
+    if interface.audio_manager.recording_state["started"]:
         recording.start()
 
-    if interface.audio_manager.recording_in_process:
+    if interface.audio_manager.recording_state["in_process"]:
         pass
 
-    elif interface.audio_manager.recording_stopped:
+    elif interface.audio_manager.recording_state["stopped"]:
         recording.keep_on = False
         recording.join()
 
-    if interface.audio_manager.playback_started:
-        recording.play()
+        rec_data = recording.get_data()
+        audio_data = interface.audio_controller.full_audio_data
+
+        print(rec_data.shape)
+        print(audio_data)
+
+    # if interface.audio_manager.playback_started:
+    #     recording.play()
 
 
 # TODO Listener Interface
+# TODO
 # TODO Continues recording of flexible length (stopped when told to do so)
