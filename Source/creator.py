@@ -6,6 +6,7 @@ from scipy.signal import *
 import threading
 
 from Source import interface
+from Source import audio_processing
 
 
 class RecordingThread(threading.Thread):
@@ -61,6 +62,8 @@ while interface.running:
         print(rec_data.shape)
         print(audio_data)
 
+        tmp_reverb_signal = audio_processing.add_reverb(rec_data, recording.sampling_freq,
+                                                        interface.audio_controller.current_audio_data)
     # if interface.audio_manager.playback_started:
     #     recording.play()
 

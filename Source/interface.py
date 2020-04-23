@@ -1,9 +1,9 @@
 import pygame
 import numpy as np
+from Source import audio_processing
 
 
 class Interface:
-
     running = True
     DEFAULT_DIMS = (1920, 1080)
 
@@ -36,7 +36,9 @@ class Interface:
                 int(abs_pos[0] > target[0]) * (4 * int(abs_pos[1] >= target[1]) + 3 * int(abs_pos[1] < target[1]))
             angle = np.rad2deg(np.arctan(abs((abs_pos[1] - target[1])) / abs((abs_pos[0] - target[0]))))
 
-            return int((quarter - 1) * 90 + int(quarter == 2 or quarter == 4) * angle + int(quarter == 1 or quarter == 3) * (90 - angle))
+            return int(
+                (quarter - 1) * 90 + int(quarter == 2 or quarter == 4) * angle + int(quarter == 1 or quarter == 3) * (
+                        90 - angle))
 
         def get_distance(self, surface, target):
             abs_pos = self.get_abs_pos(surface)
@@ -49,9 +51,11 @@ class Interface:
             angle = polar[1]
 
             if angle <= 180:
-                return int(abs_pos[0] + np.sin(np.deg2rad(180 - angle)) * distance), int(abs_pos[1] + np.cos(np.deg2rad(180 - angle)) * distance)
+                return int(abs_pos[0] + np.sin(np.deg2rad(180 - angle)) * distance), int(
+                    abs_pos[1] + np.cos(np.deg2rad(180 - angle)) * distance)
             else:
-                return int(abs_pos[0] - np.sin(np.deg2rad(360 - angle)) * distance), int(abs_pos[1] - np.cos(np.deg2rad(360 - angle)) * distance)
+                return int(abs_pos[0] - np.sin(np.deg2rad(360 - angle)) * distance), int(
+                    abs_pos[1] - np.cos(np.deg2rad(360 - angle)) * distance)
 
         def get_abs_pos(self, surface):
             return np.multiply(self.pos, surface.get_size()).astype(int)
@@ -82,7 +86,6 @@ class Interface:
 
 
 class CreatorInterface(Interface):
-
     new_angle_threshold = 10
 
     def __init__(self):
@@ -90,12 +93,15 @@ class CreatorInterface(Interface):
         pygame.display.set_caption("3DAB CREATOR")
 
         self.audio_manager = self.AudioManager(dict(
-                play_button=self.Button(pygame.image.load('../Dependencies/Images/play_button.png'), [0.804, 0.524]),
-                pause_button=self.Button(pygame.image.load('../Dependencies/Images/pause_button.png'), [0.804, 0.524], False),
-                save_button=self.Button(pygame.image.load('../Dependencies/Images/save_button.png'), [0.903, 0.524]),
-                discard_button=self.Button(pygame.image.load('../Dependencies/Images/discard_button.png'), [0.703, 0.524]),
-                rec_start_button=self.Button(pygame.image.load('../Dependencies/Images/record_start_button.png'), [0.804, 0.183]),
-                rec_stop_button=self.Button(pygame.image.load('../Dependencies/Images/record_stop_button.png'), [0.804, 0.183], False)
+            play_button=self.Button(pygame.image.load('../Dependencies/Images/play_button.png'), [0.804, 0.524]),
+            pause_button=self.Button(pygame.image.load('../Dependencies/Images/pause_button.png'), [0.804, 0.524],
+                                     False),
+            save_button=self.Button(pygame.image.load('../Dependencies/Images/save_button.png'), [0.903, 0.524]),
+            discard_button=self.Button(pygame.image.load('../Dependencies/Images/discard_button.png'), [0.703, 0.524]),
+            rec_start_button=self.Button(pygame.image.load('../Dependencies/Images/record_start_button.png'),
+                                         [0.804, 0.183]),
+            rec_stop_button=self.Button(pygame.image.load('../Dependencies/Images/record_stop_button.png'),
+                                        [0.804, 0.183], False)
             )
         )
 
@@ -120,7 +126,7 @@ class CreatorInterface(Interface):
             self.reverb_buttons = reverb_buttons
             self.radii = [0.2, 0.4, 0.8, 1.2]
 
-            self.current_audio_data = dict(angle=0, radius=0, reverb=0)
+            self.current_audio_data = dict(angle=0, radius=0, reverb="anechoic")
             self.previous_audio_data = self.current_audio_data.copy()
             self.time = 0
             self.full_audio_data = []
@@ -132,15 +138,30 @@ class CreatorInterface(Interface):
                 self.circle.display(surface, 0, r)
 
             if self.current_audio_data["radius"] > 0:
-                selection_pos = self.head.get_moved_by_polar(surface, (self.current_audio_data["radius"] * self.circle.radius, self.current_audio_data["angle"]))
+                selection_pos = self.head.get_moved_by_polar(surface, (
+                    self.current_audio_data["radius"] * self.circle.radius, self.current_audio_data["angle"]))
                 pygame.draw.circle(surface, (255, 255, 255), selection_pos, 20)
+
+            for button in self.reverb_buttons.values():
+                if button.shown:
+                    button.display(surface, 0, 1 if not button.hovered else 1.1)
 
         def check_events(self, surface, mouse_data, recording_state):
 
             for reverb_button in self.reverb_buttons.values():
                 mouse_inside = reverb_button.get_distance(surface, mouse_data["pos"]) < reverb_button.radius
-                reverb_button.hovered, reverb_button.pressed = mouse_inside, mouse_inside and mouse_data["pressed"]
+                reverb_button.hovered, reverb_button.pressed = mouse_inside, mouse_inside and mouse_data["clicked"]
                 # find which reverb button, if any, is active now
+
+            # This is very inelegant and also stupid but i guess it shows how dumb i am
+            if self.reverb_buttons["anechoic"].pressed:
+                self.current_audio_data["reverb"] = "anechoic"
+            if self.reverb_buttons["forest"].pressed:
+                self.current_audio_data["reverb"] = "forest"
+            if self.reverb_buttons["church"].pressed:
+                self.current_audio_data["reverb"] = "church"
+            if self.reverb_buttons["cave"].pressed:
+                self.current_audio_data["reverb"] = "cave"
 
             distance_to_mouse = self.circle.get_distance(surface, mouse_data["pos"])
             mouse_inside = distance_to_mouse < self.circle.radius * 1.4 and mouse_data["pressed"]
@@ -161,10 +182,10 @@ class CreatorInterface(Interface):
 
                 self.time += 1
 
-                if abs(self.current_audio_data["angle"] - self.previous_audio_data["angle"]) > self.NEW_ANGLE_THRESHOLD or \
+                if abs(self.current_audio_data["angle"] - self.previous_audio_data[
+                    "angle"]) > self.NEW_ANGLE_THRESHOLD or \
                         self.current_audio_data["radius"] != self.previous_audio_data["radius"] or \
                         self.current_audio_data["reverb"] != self.previous_audio_data["reverb"]:
-
                     self.full_audio_data.append((self.previous_audio_data, self.time))
                     print((self.previous_audio_data, self.time))
                     self.previous_audio_data = self.current_audio_data.copy()
@@ -219,7 +240,6 @@ class CreatorInterface(Interface):
 
         mouse_data = dict(pos=pygame.mouse.get_pos(), pressed=pygame.mouse.get_pressed()[0], clicked=False)
 
-
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 self.running = False
@@ -251,4 +271,3 @@ class ListenerInterface(Interface):
         return
 
 # make buttons pressed infos (recording, playback) dictionaries
-
