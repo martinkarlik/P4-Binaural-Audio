@@ -7,41 +7,12 @@ import threading
 
 from Source import interface
 from Source import audio_processing
-
-
-class RecordingThread(threading.Thread):
-
-    def __init__(self, thread_id):
-        threading.Thread.__init__(self)
-        self.threadID = thread_id
-        self.keep_on = True
-        self.mic_data = np.array([])
-        self.sampling_freq = 48000
-        self.rec_time = 5  # seconds
-        sd.default.samplerate = self.sampling_freq
-        sd.default.channels = (1, 2)
-
-    def run(self):
-        while self.keep_on:
-            print("Recording new chunk.")
-            current_chunk = sd.rec(self.rec_time * self.sampling_freq)
-            sd.wait()
-            if self.mic_data.size == 0:
-                self.mic_data = current_chunk
-            else:
-                self.mic_data = np.append(self.mic_data, current_chunk)
-
-    def play(self):
-        print(self.mic_data.shape)
-        sd.play(self.mic_data, self.sampling_freq)
-        sd.wait()
-
-    def get_data(self):
-        return self.mic_data
+from Source import audio_io
 
 
 interface = interface.CreatorInterface()
-recording = RecordingThread(1)
+recording = audio_io.RecordingThread(1)
+playback = audio_io.PlaybackThread(2)
 
 while interface.running:
     interface.update()
@@ -56,30 +27,33 @@ while interface.running:
         recording.keep_on = False
         recording.join()
 
-        rec_data = recording.get_data()
-        audio_data = interface.audio_controller.full_audio_data
+    if interface.audio_manager.playback_state["started"]:
+        playback.mic_data = recording.get_data()
+        playback.start()
 
-        audio_data = np.array(audio_data)
+    if playback.done:
+        interface.audio_manager.playback_state["stopped"] = True
+        playback.done = False
+        print(interface.audio_controller.full_audio_data)
 
-        total_frames = np.sum(audio_data[:, 1])
-        audio_data[:, 1] = np.divide(audio_data[:, 1], total_frames)
 
-        for sample in audio_data:
-            sample[1] = int(sample[1] * len(rec_data))
-
-        audio_data[len(audio_data) - 1][1] += abs(len(rec_data) - np.sum(audio_data[:, 1]))
-
-        reverb_data = audio_processing.remove_redundant_reverb(audio_data)
-
-        output = []
-        elapsed_duration = 0
-        for sample in reverb_data:
-            start_index = elapsed_duration
-            elapsed_duration += sample[1]
-            end_index = elapsed_duration
-
-            result = audio_processing.add_reverb(rec_data[start_index:end_index], recording.sampling_freq, sample[0])
-            output.append(result)
+    # audio_data = interface.audio_controller.full_audio_data
+    #
+    # audio_data = np.array(audio_data)
+    #
+    # total_frames = np.sum(audio_data[:, 1])
+    # audio_data[:, 1] = np.divide(audio_data[:, 1], total_frames)
+    #
+    # for sample in audio_data:
+    #     sample[1] = int(sample[1] * len(rec_data))
+    #
+    # audio_data[len(audio_data) - 1][1] += abs(len(rec_data) - np.sum(audio_data[:, 1]))
+    #
+    # positional_data, reverb_data = audio_processing.split_audio_data(audio_data)
+    #
+    # output = audio_processing.apply_binaural_filtering(rec_data, positional_data)
+    # sd.play(output)
+    # sd.wait()
 
         # sd.play(output)
         # sd.wait()
