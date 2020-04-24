@@ -81,8 +81,8 @@ while interface.running:
             result = audio_processing.add_reverb(rec_data[start_index:end_index], recording.sampling_freq, sample[0])
             output.append(result)
 
-        sd.play(output)
-        sd.wait()
+        # sd.play(output)
+        # sd.wait()
 
 
         # tmp_reverb_signal = audio_processing.add_reverb(rec_data, recording.sampling_freq, interface.audio_controller.current_audio_data)

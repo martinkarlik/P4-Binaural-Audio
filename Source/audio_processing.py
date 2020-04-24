@@ -6,7 +6,6 @@ import librosa
 
 # reverb_data = [dict(reverb_type="church"), 8000, dict(reverb_type="forest"), 8000]
 
-elapsed_duration = 0
 
 def add_reverb(input_signal, sampling_freq, reverb_type):
 
