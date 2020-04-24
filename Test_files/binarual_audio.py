@@ -8,7 +8,6 @@ from scipy.signal import *
 hrtf_database = sofa.Database.open('../Dependencies/Sofa/QU_KEMAR_anechoic_1m.sofa')
 
 data, sampling_freq = sf.read('../Dependencies/Audio/sample.wav')
-# Don't mind the recording.. I had no idea what to record xD
 
 input_transposed_right = np.reshape(data[:, 0], (-1, 1)).transpose()
 input_transposed_left = np.reshape(data[:, 1], (-1, 1)).transpose()
