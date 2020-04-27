@@ -42,11 +42,12 @@ while interface.running:
             playback.done = False
 
             audio_data = interface.audio_controller.full_audio_data
-            print(audio_data)
+
             audio_data = np.array(audio_data)
 
             total_frames = np.sum(audio_data[:, 1])
             audio_data[:, 1] = np.divide(audio_data[:, 1], total_frames)
+            print(audio_data)
 
             for sample in audio_data:
                 sample[1] = int(sample[1] * len(recording.get_data()))

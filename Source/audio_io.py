@@ -1,6 +1,10 @@
 import threading
 import sounddevice as sd
 import numpy as np
+import librosa
+from scipy.signal import fftconvolve
+
+
 
 
 class AudioIOThread(threading.Thread):
@@ -23,9 +27,9 @@ class RecordingThread(AudioIOThread):
         # sd.default.channels = (1, 2)
 
         self.mic_data = np.array([[]])
-        self.rec_stream = sd.InputStream(samplerate=self.sampling_freq, channels=2, blocksize=self.total_samples, callback=self.callback)
+        self.rec_stream = sd.InputStream(samplerate=self.sampling_freq, channels=2, blocksize=self.total_samples, callback=self.in_callback)
 
-    def callback(self, indata, frames, time, status):
+    def in_callback(self, indata, frames, time, status):
 
         if self.mic_data.size == 0:
             self.mic_data = indata
@@ -51,12 +55,63 @@ class PlaybackThread(AudioIOThread):
     def __init__(self, thread_id):
         super().__init__(thread_id)
         self.done = False
-        self.mic_data = None
+
+        self.chunk_length = 0.03
+        self.total_samples = int(self.sampling_freq * self.chunk_length)
+
+        self.mic_data = np.array([[]])
+        self.play_stream = sd.Stream(samplerate=self.sampling_freq, channels=2, blocksize=self.total_samples, callback=self.out_callback)
+
+    def out_callback(self, indata, outdata, frames, time, status):
+
+        signal, sampling_freq = librosa.load('../Dependencies/Audio/church_balcony.wav', sr=44100)
+        signal = np.reshape(signal, (-1, 1))
+
+        #current_chunk = 0
+
+        for x in range(int(len(self.mic_data)/self.total_samples)):
+            current_chunk = x * self.total_samples
+            if len(indata) == 0:
+                indata[:] = self.mic_data[0:self.total_samples]
+            else:
+                indata[:] = self.mic_data[0 + current_chunk:self.total_samples + current_chunk]
+            print(current_chunk)
+
+
+
+
+        #output = fftconvolve(indata, signal, mode="full")
+        # output = lfilter((signal[0:30000, 0]), 1, guitar_signal.transpose())
+        #output = np.append(output.transpose(), output.transpose(), axis=1)
+
+        #outdata[:] = output
+
+        print(outdata)
+
 
     def run(self):
-        sd.play(self.mic_data, self.sampling_freq)
+        self.play_stream.start()
         sd.wait()
         self.done = True
 
     def set_data(self, data):
         self.mic_data = data
+
+print("start")
+input()
+recording = RecordingThread(1)
+recording.start()
+
+print("stop")
+input()
+recording.stop()
+playback = PlaybackThread(2)
+playback.set_data(recording.get_data())
+
+print("play")
+input()
+playback.start()
+
+input()
+print("stopped")
+
