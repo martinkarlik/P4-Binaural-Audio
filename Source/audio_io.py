@@ -56,37 +56,24 @@ class PlaybackThread(AudioIOThread):
         super().__init__(thread_id)
         self.done = False
 
-        self.chunk_length = 0.03
+        self.chunk_length = 0.05
         self.total_samples = int(self.sampling_freq * self.chunk_length)
 
         self.mic_data = np.array([[]])
-        self.play_stream = sd.Stream(samplerate=self.sampling_freq, channels=2, blocksize=self.total_samples, callback=self.out_callback)
+        self.play_stream = sd.OutputStream(samplerate=self.sampling_freq, channels=2, blocksize=self.total_samples, callback=self.out_callback)
 
-    def out_callback(self, indata, outdata, frames, time, status):
+    def out_callback(self, outdata, frames, time, status):
 
         signal, sampling_freq = librosa.load('../Dependencies/Audio/church_balcony.wav', sr=44100)
         signal = np.reshape(signal, (-1, 1))
 
-        #current_chunk = 0
-
-        for x in range(int(len(self.mic_data)/self.total_samples)):
-            current_chunk = x * self.total_samples
-            if len(indata) == 0:
-                indata[:] = self.mic_data[0:self.total_samples]
-            else:
-                indata[:] = self.mic_data[0 + current_chunk:self.total_samples + current_chunk]
-            print(current_chunk)
-
-
-
+        print(self.mic_data)
+        outdata[:] = self.mic_data
 
         #output = fftconvolve(indata, signal, mode="full")
         # output = lfilter((signal[0:30000, 0]), 1, guitar_signal.transpose())
         #output = np.append(output.transpose(), output.transpose(), axis=1)
 
-        #outdata[:] = output
-
-        print(outdata)
 
 
     def run(self):
