@@ -144,10 +144,8 @@ class CreatorInterface(Interface):
                 selection_pos = self.head.get_moved_by_polar(surface, (
                     self.current_audio_data["radius"] * self.circle.radius, self.current_audio_data["angle"]))
 
-                self.selection.pos = [selection_pos[0] / 1280, selection_pos[1] / 720]
-
-                # pygame.draw.circle(surface, (255, 255, 255), selection_pos, 20)
-                self.selection.display(surface, 0, 0.3)
+                pygame.draw.circle(surface, (255, 255, 255), selection_pos, 20)
+                # self.selection.display(surface, 0, 0.3)
 
             for button in self.reverb_buttons.values():
                 if button.shown:

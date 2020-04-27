@@ -37,9 +37,6 @@ for i in np.arange(number_of_positions):
     ir_ear1 = hrtf_database.Data.IR.get_values(indices={"M": i, "R": 0, "E": 0})
     ir_ear2 = hrtf_database.Data.IR.get_values(indices={"M": i, "R": 1, "E": 0})
 
-    print("shapes")
-    print(ir_ear2.shape)
-    print(mic_data_transposed.shape)
     start_index = int(i * total_samples / number_of_positions)
     end_index = int((i + 1) * total_samples / number_of_positions)
 
@@ -57,6 +54,7 @@ for i in np.arange(number_of_positions):
 # playback
 
 output = np.append(output_ear1.transpose(), output_ear2.transpose(), axis=1)
+print(output.shape)
 sd.play(output)
 
 
