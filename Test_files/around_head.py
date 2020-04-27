@@ -32,35 +32,29 @@ filter_state2 = 0
 number_of_positions = 360
 total_samples = sampling_freq * rec_time
 
-
+first_sample = True
 for i in np.arange(number_of_positions):
     ir_ear1 = hrtf_database.Data.IR.get_values(indices={"M": i, "R": 0, "E": 0})
     ir_ear2 = hrtf_database.Data.IR.get_values(indices={"M": i, "R": 1, "E": 0})
 
-    print("shapes")
-    print(ir_ear2.shape)
-    print(mic_data_transposed.shape)
     start_index = int(i * total_samples / number_of_positions)
     end_index = int((i + 1) * total_samples / number_of_positions)
 
-    if i == 0:
-        initial_state1 = lfilter_zi(ir_ear1, 1)
-        initial_state2 = lfilter_zi(ir_ear2, 1)
+    if first_sample:
+        filter_state1 = lfilter_zi(ir_ear1, 1)
+        filter_state2 = lfilter_zi(ir_ear2, 1)
+        first_sample = False
 
-        output_ear1[0, start_index:end_index], filter_state1 = \
-            lfilter(ir_ear1, 1, mic_data_transposed[0, start_index:end_index], zi=initial_state1)
-        output_ear2[0, start_index:end_index], filter_state2 = \
-            lfilter(ir_ear2, 1,mic_data_transposed[0, start_index:end_index], zi=initial_state2)
+    output_ear1[0, start_index:end_index], filter_state1 = \
+        lfilter(ir_ear1, 1, mic_data_transposed[0, start_index:end_index], zi=filter_state1)
+    output_ear2[0, start_index:end_index], filter_state2 = \
+        lfilter(ir_ear2, 1, mic_data_transposed[0, start_index:end_index], zi=filter_state2)
 
-    else:
-        output_ear1[0, start_index:end_index], filter_state1 = \
-            lfilter(ir_ear1, 1, mic_data_transposed[0, start_index:end_index], zi=filter_state1)
-        output_ear2[0, start_index:end_index], filter_state2 = \
-            lfilter(ir_ear2, 1, mic_data_transposed[0, start_index:end_index], zi=filter_state2)
 
 # playback
 
 output = np.append(output_ear1.transpose(), output_ear2.transpose(), axis=1)
+print(output.shape)
 sd.play(output)
 
 
