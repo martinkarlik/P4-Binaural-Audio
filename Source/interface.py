@@ -1,6 +1,7 @@
 import pygame
 import numpy as np
-from Source import audio_processing
+import threading
+import time
 
 
 class Interface:
@@ -131,7 +132,6 @@ class CreatorInterface(Interface):
 
             self.current_audio_data = dict(angle=-1, radius=0, reverb="anechoic")
             self.previous_audio_data = self.current_audio_data.copy()
-            self.time = 0
             self.full_audio_data = []
 
         def display(self, surface):
@@ -185,27 +185,44 @@ class CreatorInterface(Interface):
 
             if playback_state["in_process"]:
 
-                self.time += 1
-
                 if abs(self.current_audio_data["angle"] - self.previous_audio_data["angle"]) > self.NEW_ANGLE_THRESHOLD or \
                         self.current_audio_data["radius"] != self.previous_audio_data["radius"] or \
                         self.current_audio_data["reverb"] != self.previous_audio_data["reverb"]:
-                    self.full_audio_data.append((self.previous_audio_data, self.time))
+                    self.full_audio_data.append((self.previous_audio_data, playback_state["timer"].get_time()))
 
                     self.previous_audio_data = self.current_audio_data.copy()
 
-                    self.time = 0
-
             elif playback_state["stopped"]:
-                self.full_audio_data.append([self.current_audio_data, self.time])
+                self.full_audio_data.append([self.current_audio_data, playback_state["timer"].get_time()])
 
     class AudioManager:
+
+        class Timer(threading.Thread):
+            def __init__(self):
+                super().__init__()
+                self.active = True
+                self.initial_time = 0
+
+            def run(self):
+                self.initial_time = time.time()
+
+                # while self.active:
+                #     t0 = time.time()
+                #     t1 = t0
+                #     while t0 == t1:
+                #         t1 = time.time()
+                #     self.current_time += t1 - t0
+
+            def get_time(self):
+                return time.time() - self.initial_time
+
+                # return self.current_time
 
         def __init__(self, buttons):
             self.buttons = buttons
 
-            self.recording_state = dict(started=False, stopped=False, in_process=False)
-            self.playback_state = dict(started=False, stopped=False, in_process=False, paused=False)
+            self.recording_state = dict(started=False, stopped=False, in_process=False, timer=self.Timer())
+            self.playback_state = dict(started=False, stopped=False, in_process=False, paused=False, timer=self.Timer())
 
         def display(self, surface):
 
@@ -223,9 +240,19 @@ class CreatorInterface(Interface):
             self.playback_state["paused"] = self.buttons["pause_button"].clicked
 
             if self.playback_state["started"]:
+                self.playback_state["timer"] = self.Timer()
+                self.playback_state["timer"].start()
                 self.playback_state["in_process"] = True
                 self.buttons["play_button"].replace(self.buttons["pause_button"])
-            elif self.playback_state["paused"] or self.playback_state["stopped"]:
+
+            elif self.playback_state["paused"]:
+                self.playback_state["in_process"] = False
+                self.playback_state["paused"] = True
+                self.buttons["pause_button"].replace(self.buttons["play_button"])
+
+            elif self.playback_state["stopped"]:
+                self.playback_state["timer"].active = False
+                self.playback_state["timer"].join()
                 self.playback_state["in_process"] = False
                 self.buttons["pause_button"].replace(self.buttons["play_button"])
 
@@ -233,8 +260,13 @@ class CreatorInterface(Interface):
             self.recording_state["stopped"] = self.buttons["rec_stop_button"].clicked
 
             if self.recording_state["started"]:
+                self.recording_state["timer"] = self.Timer()
+                self.recording_state["timer"].start()
                 self.recording_state["in_process"] = True
-            if self.recording_state["stopped"]:
+
+            elif self.recording_state["stopped"]:
+                self.recording_state["timer"].active = False
+                self.recording_state["timer"].join()
                 self.recording_state["in_process"] = False
 
             if self.buttons["rec_start_button"].clicked:
@@ -253,13 +285,16 @@ class CreatorInterface(Interface):
             elif event.type == pygame.KEYDOWN and event.unicode == 'c':
                 self.audio_controller.current_audio_data["angle"] = -1
                 self.audio_controller.current_audio_data["radius"] = 0
-                self.audio_controller.current_audio_data["reverb"] = "anechoic"
 
             elif mouse_data["pressed"] and event.type == pygame.MOUSEBUTTONUP:
                 mouse_data["clicked"] = True
 
         self.audio_manager.check_events(self.screen, mouse_data)
+
         self.audio_controller.check_events(self.screen, mouse_data, self.audio_manager.playback_state)
+
+        if self.audio_manager.playback_state["in_process"]:
+            print(self.audio_manager.playback_state["timer"].get_time())
 
         # display all the visuals
         self.screen.fill((20, 40, 80))
