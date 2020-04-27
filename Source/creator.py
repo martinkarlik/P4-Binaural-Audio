@@ -22,7 +22,7 @@ while interface.running:
     interface.update()
 
     if interface.audio_manager.recording_state["started"]:
-        recording = audio_io.RecordingThread(1)
+        recording = audio_io.RecordingThread()
         recording.start()
 
     if interface.audio_manager.recording_state["in_process"]:
@@ -32,9 +32,10 @@ while interface.running:
         recording.stop()
 
     if interface.audio_manager.playback_state["started"]:
-        playback = audio_io.PlaybackThread(2)
+        playback = audio_io.PlaybackThread()
         playback.set_data(recording.get_data())
         playback.start()
+
     elif interface.audio_manager.playback_state["in_process"]:
 
         # playback.get_chunk()

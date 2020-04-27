@@ -1,9 +1,25 @@
 import numpy as np
 from scipy.signal import *
 import sounddevice as sd
+import soundfile as sf
 import sofa
 import librosa
 
+
+def preprocess_data(rec_data, audio_data):
+    total_frames = np.sum(audio_data[:, 1])
+    audio_data[:, 1] = np.divide(audio_data[:, 1], total_frames)
+
+    for sample in audio_data:
+        sample[1] = int(sample[1] * len(rec_data))
+
+    audio_data[len(audio_data) - 1][1] += abs(len(rec_data) - np.sum(audio_data[:, 1]))
+
+    positional_data, reverb_data = split_audio_data(audio_data)
+
+    output = apply_binaural_filtering(rec_data, positional_data)
+    sd.play(output)
+    sd.wait()
 
 
 def add_reverb(input_signal, sampling_freq, reverb_type):
@@ -112,3 +128,23 @@ def split_audio_data(data):
     positional_data.append([current_position, elapsed_duration_positional])
 
     return positional_data, reverb_data
+
+# sampling_freq = 48000
+# sd.default.samplerate = sampling_freq
+# sd.default.channels = (1, 5)
+# rec_time = 10 # seconds
+#
+# mic_data = sd.rec(rec_time * sampling_freq)
+# mic_data_transposed = mic_data.transpose()
+# print("Recording...")
+# sd.wait()
+# print("Recording ended.")
+#
+# # input_transposed = np.reshape(mic_data, (-1, 1)).transpose()
+#
+# print(mic_data.shape)
+# positional_data = [[(270, 1.2), 48000*2], [(90, 1.2), 48000*2], [(-1, 0), 48000*2], [(90, 1.2), 48000*2], [(180, 1.2), 48000*2]]
+#
+# output = apply_binaural_filtering(mic_data, positional_data)
+# sd.play(output, sampling_freq)
+# sd.wait()
