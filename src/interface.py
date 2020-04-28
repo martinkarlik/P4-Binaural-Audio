@@ -102,27 +102,27 @@ class CreatorInterface(Interface):
         pygame.display.set_caption("3DAB CREATOR")
 
         self.audio_manager = self.AudioManager(dict(
-            play_button=self.Button(pygame.image.load('../Dependencies/Images/play_button.png'), [0.804, 0.524]),
-            pause_button=self.Button(pygame.image.load('../Dependencies/Images/pause_button.png'), [0.804, 0.524],
+            play_button=self.Button(pygame.image.load('../dependencies/images/play_button.png'), [0.804, 0.524]),
+            pause_button=self.Button(pygame.image.load('../dependencies/images/pause_button.png'), [0.804, 0.524],
                                      False),
-            save_button=self.Button(pygame.image.load('../Dependencies/Images/save_button.png'), [0.903, 0.524]),
-            discard_button=self.Button(pygame.image.load('../Dependencies/Images/discard_button.png'), [0.703, 0.524]),
-            rec_start_button=self.Button(pygame.image.load('../Dependencies/Images/record_start_button.png'),
+            save_button=self.Button(pygame.image.load('../dependencies/images/save_button.png'), [0.903, 0.524]),
+            discard_button=self.Button(pygame.image.load('../dependencies/images/discard_button.png'), [0.703, 0.524]),
+            rec_start_button=self.Button(pygame.image.load('../dependencies/images/record_start_button.png'),
                                          [0.804, 0.183]),
-            rec_stop_button=self.Button(pygame.image.load('../Dependencies/Images/record_stop_button.png'),
+            rec_stop_button=self.Button(pygame.image.load('../dependencies/images/record_stop_button.png'),
                                         [0.804, 0.183], False)
             )
         )
 
         self.audio_controller = self.AudioController(
-            self.Button(pygame.image.load('../Dependencies/Images/head.png'), [0.269, 0.4]),
-            self.Button(pygame.image.load('../Dependencies/Images/circle.png'), [0.269, 0.4]),
-            self.Button(pygame.image.load('../Dependencies/Images/jakub.png'), [0.269, 0.4]),
+            self.Button(pygame.image.load('../dependencies/images/head.png'), [0.269, 0.4]),
+            self.Button(pygame.image.load('../dependencies/images/circle.png'), [0.269, 0.4]),
+            self.Button(pygame.image.load('../dependencies/images/jakub.png'), [0.269, 0.4]),
             dict(
-                anechoic=self.Button(pygame.image.load('../Dependencies/Images/anechoic.png'), [0.146, 0.911]),
-                forest=self.Button(pygame.image.load('../Dependencies/Images/forest.png'), [0.229, 0.911]),
-                church=self.Button(pygame.image.load('../Dependencies/Images/church.png'), [0.312, 0.911]),
-                cave=self.Button(pygame.image.load('../Dependencies/Images/cave.png'), [0.397, 0.911])
+                anechoic=self.Button(pygame.image.load('../dependencies/images/anechoic.png'), [0.146, 0.911]),
+                forest=self.Button(pygame.image.load('../dependencies/images/forest.png'), [0.229, 0.911]),
+                church=self.Button(pygame.image.load('../dependencies/images/church.png'), [0.312, 0.911]),
+                cave=self.Button(pygame.image.load('../dependencies/images/cave.png'), [0.397, 0.911])
             )
         )
 
@@ -341,23 +341,23 @@ class ListenerInterface(Interface):
         self.Widget.initial_scale_value = self.screen_ratio_to_default
 
         self.player_controller = self.PlayerController(dict(
-            jump_forward=self.Button(pygame.image.load('../Dependencies/Images/1jump_forward.png'), [0.8, 0.67]),
-            jump_backwards=self.Button(pygame.image.load('../Dependencies/Images/1jump_backwards.png'), [0.2, 0.67]),
-            play_button=self.Button(pygame.image.load('../Dependencies/Images/1play_button.png'), [0.5, 0.67]),
-            pause_button=self.Button(pygame.image.load('../Dependencies/Images/1pause_button.png'), [0.5, 0.67],
+            jump_forward=self.Button(pygame.image.load('../dependencies/images/1jump_forward.png'), [0.8, 0.67]),
+            jump_backwards=self.Button(pygame.image.load('../dependencies/images/1jump_backwards.png'), [0.2, 0.67]),
+            play_button=self.Button(pygame.image.load('../dependencies/images/1play_button.png'), [0.5, 0.67]),
+            pause_button=self.Button(pygame.image.load('../dependencies/images/1pause_button.png'), [0.5, 0.67],
                                      False),
-            open_file_button=self.Button(pygame.image.load('../Dependencies/Images/1open_file.png'),
+            open_file_button=self.Button(pygame.image.load('../dependencies/images/1open_file.png'),
                                          [0.18, 0.93]),
-            reset_headtracking_button=self.Button(pygame.image.load('../Dependencies/Images/1reset_headtracking.png'),
+            reset_headtracking_button=self.Button(pygame.image.load('../dependencies/images/1reset_headtracking.png'),
                                          [0.45, 0.93]),
 
 
         ),
 
-            self.Button(pygame.image.load('../Dependencies/Images/1pulse.png'), self.pulse_sound_location),
-            self.Button(pygame.image.load('../Dependencies/Images/1slider.png'), [0.5, 0.8]),
-            self.Button(pygame.image.load('../Dependencies/Images/1background.png'), [0.5, 0.5]),
-            self.Button(pygame.image.load('../Dependencies/Images/1head.png'), [0.5, 0.25])
+            self.Button(pygame.image.load('../dependencies/images/1pulse.png'), self.pulse_sound_location),
+            self.Button(pygame.image.load('../dependencies/images/1slider.png'), [0.5, 0.8]),
+            self.Button(pygame.image.load('../dependencies/images/1background.png'), [0.5, 0.5]),
+            self.Button(pygame.image.load('../dependencies/images/1head.png'), [0.5, 0.25])
         )
 
     class PlayerController:

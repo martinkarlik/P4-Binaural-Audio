@@ -5,7 +5,7 @@ import soundfile as sf
 from scipy.signal import *
 import threading
 
-from Source import interface
+from src import interface
 
 population = []
 
@@ -24,7 +24,7 @@ while True:
 
 
 
-hrtf_database = sofa.Database.open('../Dependencies/Sofa/QU_KEMAR_anechoic_1m.sofa')
+hrtf_database = sofa.Database.open('../dependencies/impulse_responses/QU_KEMAR_anechoic_1m.sofa')
 
 sampling_freq = 48000
 sd.default.samplerate = sampling_freq
@@ -39,7 +39,7 @@ print("Recording ended.")
 # print(population)
 
 
-data, sampling_freq = sf.read('../Dependencies/Audio/sample.wav')
+data, sampling_freq = sf.read('../dependencies/audio_samples/sample.wav')
 input_transposed_right = np.reshape(mic_data, (-1, 1)).transpose()
 input_transposed_left = np.reshape(mic_data, (-1, 1)).transpose()
 

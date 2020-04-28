@@ -24,15 +24,15 @@ screen = pygame.display.set_mode((width, height), 1, 16)
 # title
 pygame.display.set_caption("3DAB")
 
-# Images
-background_img = pygame.image.load('../Dependencies/Images/bg.png')
-record_img = pygame.image.load('../Dependencies/Images/recordIcon.png')
-x_img = pygame.image.load('../Dependencies/Images/xicon.png')
-play_img = pygame.image.load('../Dependencies/Images/playIcon.png')
-save_img = pygame.image.load('../Dependencies/Images/saveIcon.png')
-circle_img = pygame.image.load('../Dependencies/Images/circle.png')
-pb_img = pygame.image.load('../Dependencies/Images/pb.png')
-recordb_img = pygame.image.load('../Dependencies/Images/recordb.png')
+# images
+background_img = pygame.image.load('../dependencies/images/bg.png')
+record_img = pygame.image.load('../dependencies/images/recordIcon.png')
+x_img = pygame.image.load('../dependencies/images/xicon.png')
+play_img = pygame.image.load('../dependencies/images/playIcon.png')
+save_img = pygame.image.load('../dependencies/images/saveIcon.png')
+circle_img = pygame.image.load('../dependencies/images/circle.png')
+pb_img = pygame.image.load('../dependencies/images/pb.png')
+recordb_img = pygame.image.load('../dependencies/images/recordb.png')
 
 
 # starting position
