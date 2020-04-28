@@ -4,8 +4,8 @@ import numpy as np
 import librosa
 from scipy.signal import fftconvolve
 
-
-
+signal, sampling_freq = librosa.load('../Dependencies/Audio/church_balcony.wav', sr=44100)
+signal = np.reshape(signal, (-1, 1))
 
 class AudioIOThread(threading.Thread):
 
@@ -26,7 +26,7 @@ class RecordingThread(AudioIOThread):
 
         self.rec_stream = sd.InputStream(samplerate=self.sampling_freq, channels=1, blocksize=self.chunk_samples, callback=self.callback)
 
-    def in_callback(self, indata, frames, time, status):
+    def callback(self, indata, frames, time, status):
 
         if self.rec_data.size == 0:
             self.rec_data = indata
@@ -49,15 +49,16 @@ class PlaybackThread(AudioIOThread):
     def __init__(self):
         super().__init__()
         self.play_data = np.array([[]])
+        self.output_data = np.array([[]])
         self.done = False
         self.counter = 0
 
         self.play_stream = sd.OutputStream(samplerate=self.sampling_freq, channels=1, blocksize=self.chunk_samples, callback=self.callback)
 
     def run(self):
-        sd.play(self.play_data)
-        sd.wait()
-        # self.play_stream.start()
+        # sd.play(self.play_data)
+        # sd.wait()
+        self.play_stream.start()
         self.done = True
 
     # def out_callback(self, indata, outdata, frames, time, status):
@@ -79,7 +80,6 @@ class PlaybackThread(AudioIOThread):
     #
     #
     #     #output = fftconvolve(indata, signal, mode="full")
-    #     # output = lfilter((signal[0:30000, 0]), 1, guitar_signal.transpose())
     #     #output = np.append(output.transpose(), output.transpose(), axis=1)
     #
     #     #outdata[:] = output
@@ -87,29 +87,35 @@ class PlaybackThread(AudioIOThread):
     #     print(outdata)
 
     def callback(self, outdata, frames, time, status):
-        outdata[:] = self.play_data[self.counter * frames:(self.counter+1) * frames]
+        output = fftconvolve(self.play_data[self.counter * frames:(self.counter+1) * frames], signal, mode="same")
+        print("output shape: ", output.shape)
+        self.output_data = np.append(output, output, axis=0)
+        # print("outdata shape: ", self.output_data)
+        outdata[:] = self.output_data[self.counter * frames:(self.counter+1) * frames]
+        print("outdata", outdata.shape)
         self.counter += 1
 
     def set_data(self, data):
         self.play_data = data
 
-    # print("start")
-    # input()
-    # recording = RecordingThread(1)
-    # recording.start()
-    #
-    # print("stop")
-    # input()
-    # recording.stop()
-    # playback = PlaybackThread(2)
-    # playback.set_data(recording.get_data())
-    #
-    # print("play")
-    # input()
-    # playback.start()
-    #
-    # input()
-    # print("stopped")
+
+print("start")
+input()
+recording = RecordingThread()
+recording.start()
+
+print("stop")
+input()
+recording.stop()
+playback = PlaybackThread()
+playback.set_data(recording.get_data())
+
+print("play")
+input()
+playback.start()
+
+input()
+print("stopped")
 
 
 # sampling_freq = 48000
