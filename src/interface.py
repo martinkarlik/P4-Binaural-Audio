@@ -201,6 +201,7 @@ class CreatorInterface(Interface):
                         self.current_audio_data["radius"] = r
 
             if playback_state["started"]:
+                playback_state["stopped"] = False
                 self.previous_audio_data = self.current_audio_data.copy()
 
             if playback_state["in_process"]:
@@ -280,16 +281,6 @@ class CreatorInterface(Interface):
 
             self.recording_state["started"] = self.buttons["rec_start_button"].clicked
             self.recording_state["stopped"] = self.buttons["rec_stop_button"].clicked
-
-            if self.recording_state["started"]:
-                self.recording_state["timer"] = self.Timer()
-                self.recording_state["timer"].start()
-                self.recording_state["in_process"] = True
-
-            elif self.recording_state["stopped"]:
-                self.recording_state["timer"].active = False
-                self.recording_state["timer"].join()
-                self.recording_state["in_process"] = False
 
             if self.buttons["rec_start_button"].clicked:
                 self.buttons["rec_start_button"].replace(self.buttons["rec_stop_button"])

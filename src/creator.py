@@ -3,6 +3,7 @@ import numpy as np
 import sounddevice as sd
 import pandas as pd
 import os.path
+import soundfile as sf
 
 from src import interface
 from src import audio_processing
@@ -67,6 +68,8 @@ while interface.running:
             output = audio_processing.apply_binaural_filtering(recording.get_data(), positional_data)
             sd.play(output)
             sd.wait()
+
+
 
 
 

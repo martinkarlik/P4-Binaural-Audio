@@ -1,5 +1,5 @@
 number_of_recordings_done = 0
-csv_file_name = "../dependencies/csv_data/positional_data.csv"
+csv_file_name = ""
 
 
 def get_csv_file_path():
