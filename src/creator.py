@@ -3,6 +3,7 @@ import numpy as np
 import sounddevice as sd
 import pandas as pd
 import os.path
+import soundfile as sf
 
 from src import interface
 from src import audio_processing
@@ -55,18 +56,22 @@ while interface.running:
 
             positional_data, reverb_data = audio_processing.split_audio_data(audio_data)
 
-            # ---------------------------------------- HANDLE CSV FILE -------------------------------------------------
+            # ------------------------------------ HANDLE CSV / WAV FILE -----------------------------------------------
 
             csv_file_name = file_names.get_csv_file_path()
+            wav_file_name = file_names.get_wav_file_path()
             if os.path.isfile(csv_file_name):
-                file_names.increase_number_of_csv_created()
+                file_names.increase_number_of_recordings_created()
+                sf.write(wav_file_name, recording.get_data(), audio_io.sampling_freq)
                 pd.DataFrame(positional_data).to_csv(csv_file_name, header=None, index=None)
             else:
                 pd.DataFrame(positional_data).to_csv(csv_file_name, header=None, index=None)
+                sf.write(wav_file_name, recording.get_data(), audio_io.sampling_freq)
 
             output = audio_processing.apply_binaural_filtering(recording.get_data(), positional_data)
             sd.play(output)
             sd.wait()
+
 
 
 
