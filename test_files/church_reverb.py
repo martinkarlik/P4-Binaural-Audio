@@ -5,16 +5,16 @@ import soundfile as sf
 import matplotlib.pyplot as plt
 import librosa
 
-guitar_signal, _ = sf.read('../Dependencies/Audio/guitar.wav')
+guitar_signal, _ = sf.read('../dependencies/audio_samples/guitar.wav')
 
 # church
-signal, sampling_freq = librosa.load('../Dependencies/Audio/church_balcony.wav', sr=44100)  # Downsample 94kHz to 44kHz
+signal, sampling_freq = librosa.load('../dependencies/impulse_responses/church_balcony.wav', sr=44100)  # Downsample 94kHz to 44kHz
 
 # forrest
-# signal, sampling_freq = librosa.load('../Dependencies/Audio/forrest.wav', sr=44100)
+# signal, sampling_freq = librosa.load('../dependencies/audio_samples/forrest.wav', sr=44100)
 
 # cave
-# signal, sampling_freq = librosa.load('../Dependencies/Audio/cave.wav', sr=44100)
+# signal, sampling_freq = librosa.load('../dependencies/audio_samples/cave.wav', sr=44100)
 
 guitar_signal = np.reshape(guitar_signal, (-1, 1))
 signal = np.reshape(signal, (-1, 1))

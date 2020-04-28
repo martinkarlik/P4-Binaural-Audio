@@ -28,11 +28,11 @@ def add_reverb(input_signal, sampling_freq, reverb_type):
         return input_signal
     else:
         if reverb_type == "forest":
-            reverb_impulse, sampling_freq = librosa.load('../Dependencies/Audio/forrest.wav', sr=sampling_freq)
+            reverb_impulse, sampling_freq = librosa.load('../dependencies/impulse_responses/forrest.wav', sr=sampling_freq)
         elif reverb_type == "church":
-            reverb_impulse, sampling_freq = librosa.load('../Dependencies/Audio/church_balcony.wav', sr=sampling_freq)
+            reverb_impulse, sampling_freq = librosa.load('../dependencies/impulse_responses/church_balcony.wav', sr=sampling_freq)
         elif reverb_type == "cave":
-            reverb_impulse, sampling_freq = librosa.load('../Dependencies/Audio/cave.wav', sr=sampling_freq)
+            reverb_impulse, sampling_freq = librosa.load('../dependencies/impulse_responses/cave.wav', sr=sampling_freq)
 
         input_signal = np.reshape(input_signal, (-1, 1))
         print("tansposed input: ", input_signal.shape)
@@ -49,10 +49,10 @@ def add_reverb(input_signal, sampling_freq, reverb_type):
 
 def apply_binaural_filtering(input_signal, positional_data):
 
-    sofa_0_5 = sofa.Database.open('../Dependencies/Sofa/QU_KEMAR_anechoic_0_5m.sofa')
-    sofa_1 = sofa.Database.open('../Dependencies/Sofa/QU_KEMAR_anechoic_1m.sofa')
-    sofa_2 = sofa.Database.open('../Dependencies/Sofa/QU_KEMAR_anechoic_2m.sofa')
-    sofa_3 = sofa.Database.open('../Dependencies/Sofa/QU_KEMAR_anechoic_3m.sofa')
+    sofa_0_5 = sofa.Database.open('../dependencies/impulse_responses/QU_KEMAR_anechoic_0_5m.sofa')
+    sofa_1 = sofa.Database.open('../dependencies/impulse_responses/QU_KEMAR_anechoic_1m.sofa')
+    sofa_2 = sofa.Database.open('../dependencies/impulse_responses/QU_KEMAR_anechoic_2m.sofa')
+    sofa_3 = sofa.Database.open('../dependencies/impulse_responses/QU_KEMAR_anechoic_3m.sofa')
 
     hrtf_database = {0.2: sofa_0_5, 0.4: sofa_1, 0.8: sofa_2, 1.2: sofa_3}
 

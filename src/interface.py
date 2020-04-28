@@ -2,6 +2,7 @@ import pygame
 import numpy as np
 import threading
 import time
+from scipy.interpolate import interp1d
 
 
 class Interface:
@@ -51,6 +52,10 @@ class Interface:
             distance_x = abs(abs_pos[0] - target[0])
             distance_y = abs(abs_pos[1] - target[1])
             return distance_x, distance_y
+        #
+        # def map_pos(self, values, target_values):
+        #     mapped = interp1d([values], [target_values])
+        #     return mapped
 
         def get_moved_by_polar(self, surface, polar):
             abs_pos = self.get_abs_pos(surface)
@@ -93,6 +98,13 @@ class Interface:
             self.font = pygame.font.Font('freesansbold.ttf', 32)
             # self.text = self.font.render('') sth sth sth
 
+    # class Slider(Widget):
+    #     def __init__(self, val, min_val, max_val, image, pos, shown=True):
+    #         super().__init__(image, pos, shown)
+    #         self.val = val
+    #         self.min_val = min_val
+    #         self.max_val = max_val
+
 
 class CreatorInterface(Interface):
     new_angle_threshold = 10
@@ -102,27 +114,27 @@ class CreatorInterface(Interface):
         pygame.display.set_caption("3DAB CREATOR")
 
         self.audio_manager = self.AudioManager(dict(
-            play_button=self.Button(pygame.image.load('../Dependencies/Images/play_button.png'), [0.804, 0.524]),
-            pause_button=self.Button(pygame.image.load('../Dependencies/Images/pause_button.png'), [0.804, 0.524],
+            play_button=self.Button(pygame.image.load('../dependencies/images/play_button.png'), [0.804, 0.524]),
+            pause_button=self.Button(pygame.image.load('../dependencies/images/pause_button.png'), [0.804, 0.524],
                                      False),
-            save_button=self.Button(pygame.image.load('../Dependencies/Images/save_button.png'), [0.903, 0.524]),
-            discard_button=self.Button(pygame.image.load('../Dependencies/Images/discard_button.png'), [0.703, 0.524]),
-            rec_start_button=self.Button(pygame.image.load('../Dependencies/Images/record_start_button.png'),
+            save_button=self.Button(pygame.image.load('../dependencies/images/save_button.png'), [0.903, 0.524]),
+            discard_button=self.Button(pygame.image.load('../dependencies/images/discard_button.png'), [0.703, 0.524]),
+            rec_start_button=self.Button(pygame.image.load('../dependencies/images/record_start_button.png'),
                                          [0.804, 0.183]),
-            rec_stop_button=self.Button(pygame.image.load('../Dependencies/Images/record_stop_button.png'),
+            rec_stop_button=self.Button(pygame.image.load('../dependencies/images/record_stop_button.png'),
                                         [0.804, 0.183], False)
             )
         )
 
         self.audio_controller = self.AudioController(
-            self.Button(pygame.image.load('../Dependencies/Images/head.png'), [0.269, 0.4]),
-            self.Button(pygame.image.load('../Dependencies/Images/circle.png'), [0.269, 0.4]),
-            self.Button(pygame.image.load('../Dependencies/Images/jakub.png'), [0.269, 0.4]),
+            self.Button(pygame.image.load('../dependencies/images/head.png'), [0.269, 0.4]),
+            self.Button(pygame.image.load('../dependencies/images/circle.png'), [0.269, 0.4]),
+            self.Button(pygame.image.load('../dependencies/images/jakub.png'), [0.269, 0.4]),
             dict(
-                anechoic=self.Button(pygame.image.load('../Dependencies/Images/anechoic.png'), [0.146, 0.911]),
-                forest=self.Button(pygame.image.load('../Dependencies/Images/forest.png'), [0.229, 0.911]),
-                church=self.Button(pygame.image.load('../Dependencies/Images/church.png'), [0.312, 0.911]),
-                cave=self.Button(pygame.image.load('../Dependencies/Images/cave.png'), [0.397, 0.911])
+                anechoic=self.Button(pygame.image.load('../dependencies/images/anechoic.png'), [0.146, 0.911]),
+                forest=self.Button(pygame.image.load('../dependencies/images/forest.png'), [0.229, 0.911]),
+                church=self.Button(pygame.image.load('../dependencies/images/church.png'), [0.312, 0.911]),
+                cave=self.Button(pygame.image.load('../dependencies/images/cave.png'), [0.397, 0.911])
             )
         )
 
@@ -341,23 +353,23 @@ class ListenerInterface(Interface):
         self.Widget.initial_scale_value = self.screen_ratio_to_default
 
         self.player_controller = self.PlayerController(dict(
-            jump_forward=self.Button(pygame.image.load('../Dependencies/Images/1jump_forward.png'), [0.8, 0.67]),
-            jump_backwards=self.Button(pygame.image.load('../Dependencies/Images/1jump_backwards.png'), [0.2, 0.67]),
-            play_button=self.Button(pygame.image.load('../Dependencies/Images/1play_button.png'), [0.5, 0.67]),
-            pause_button=self.Button(pygame.image.load('../Dependencies/Images/1pause_button.png'), [0.5, 0.67],
+            jump_forward=self.Button(pygame.image.load('../dependencies/images/1jump_forward.png'), [0.8, 0.67]),
+            jump_backwards=self.Button(pygame.image.load('../dependencies/images/1jump_backwards.png'), [0.2, 0.67]),
+            play_button=self.Button(pygame.image.load('../dependencies/images/1play_button.png'), [0.5, 0.67]),
+            pause_button=self.Button(pygame.image.load('../dependencies/images/1pause_button.png'), [0.5, 0.67],
                                      False),
-            open_file_button=self.Button(pygame.image.load('../Dependencies/Images/1open_file.png'),
+            open_file_button=self.Button(pygame.image.load('../dependencies/images/1open_file.png'),
                                          [0.18, 0.93]),
-            reset_headtracking_button=self.Button(pygame.image.load('../Dependencies/Images/1reset_headtracking.png'),
+            reset_headtracking_button=self.Button(pygame.image.load('../dependencies/images/1reset_headtracking.png'),
                                          [0.45, 0.93]),
 
 
         ),
 
-            self.Button(pygame.image.load('../Dependencies/Images/1pulse.png'), self.pulse_sound_location),
-            self.Button(pygame.image.load('../Dependencies/Images/1slider.png'), [0.5, 0.8]),
-            self.Button(pygame.image.load('../Dependencies/Images/1background.png'), [0.5, 0.5]),
-            self.Button(pygame.image.load('../Dependencies/Images/1head.png'), [0.5, 0.25])
+            self.Button(pygame.image.load('../dependencies/images/1pulse.png'), self.pulse_sound_location),
+            self.Button(pygame.image.load('../dependencies/images/1slider.png'), [0.5, 0.8]),
+            self.Button(pygame.image.load('../dependencies/images/1background.png'), [0.5, 0.5]),
+            self.Button(pygame.image.load('../dependencies/images/1head.png'), [0.5, 0.25])
         )
 
     class PlayerController:
@@ -369,8 +381,9 @@ class ListenerInterface(Interface):
             self.head = head
             self.slider = slider
             self.background = background
+            self.slider_position = 25
+            self.playing_progress = 1
 
-            self.playing_progress = 0
 
             self.paused_state = dict(started=False)
             self.playing_state = dict(started=False,  paused=False)
@@ -382,9 +395,9 @@ class ListenerInterface(Interface):
             self.slider.display(surface)
             self.pulse.display(surface)
 
-            if self.playing_progress > 0:
-                selection_pos = (pygame.mouse.get_pos()[0], self.slider.get_abs_pos(surface)[1])
-                pygame.draw.circle(surface, (255, 255, 255), selection_pos, 20)
+
+            selection_pos = (self.slider_position, self.slider.get_abs_pos(surface)[1])
+            pygame.draw.circle(surface, (255, 255, 255), selection_pos, 20)
 
             for button in self.buttons.values():
                 if button.shown:
@@ -397,9 +410,11 @@ class ListenerInterface(Interface):
 
             mouse_inside = distance_to_mouse_x < self.slider.size[0]/2 and distance_to_mouse_y < self.slider.size[1]/2 and mouse_data["pressed"]
 
+            self.playing_progress = interp1d([25, 455], [0, 100])
+            print(self.playing_progress(self.slider_position))
+
             if mouse_inside:
-                self.playing_progress = pygame.mouse.get_pos()[0]
-                print(self.playing_progress)
+                self.slider_position = mouse_data["pos"][0]
 
             for button in self.buttons.values():
                 if button.shown:

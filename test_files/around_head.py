@@ -4,7 +4,7 @@ import numpy as np
 import sounddevice as sd
 from scipy.signal import *
 
-hrtf_database = sofa.Database.open('../Dependencies/Sofa/QU_KEMAR_anechoic_1m.sofa')
+hrtf_database = sofa.Database.open('../dependencies/impulse_responses/QU_KEMAR_anechoic_1m.sofa')
 
 # recording
 sampling_freq = 48000

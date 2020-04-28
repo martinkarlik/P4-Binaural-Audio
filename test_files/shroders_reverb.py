@@ -8,7 +8,7 @@ from scipy.interpolate import interp1d
 def delay():
     # load the sample file
     sd.stop()
-    sampling_freq, guitar_signal = wave.read('../Dependencies/Audio/guitar.wav')
+    sampling_freq, guitar_signal = wave.read('../dependencies/audio_samples/guitar.wav')
     guitar_signal = guitar_signal / 2 ** 15  # normalise
 
     # audio processing

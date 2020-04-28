@@ -5,9 +5,9 @@ import soundfile as sf
 from scipy.signal import *
 
 # Different distances (0.5m, 1m, 2m, 3m) are in 4 different sofa files, we load just one for now.
-hrtf_database = sofa.Database.open('../Dependencies/Sofa/QU_KEMAR_anechoic_1m.sofa')
+hrtf_database = sofa.Database.open('../dependencies/impulse_responses/QU_KEMAR_anechoic_1m.sofa')
 
-data, sampling_freq = sf.read('../Dependencies/Audio/sample.wav')
+data, sampling_freq = sf.read('../dependencies/audio_samples/sample.wav')
 
 input_transposed_right = np.reshape(data[:, 0], (-1, 1)).transpose()
 input_transposed_left = np.reshape(data[:, 1], (-1, 1)).transpose()

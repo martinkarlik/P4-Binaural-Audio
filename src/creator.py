@@ -8,9 +8,9 @@ import soundfile as sf
 from scipy.signal import *
 import threading
 
-from Source import interface
-from Source import audio_processing
-from Source import audio_io
+from src import interface
+from src import audio_processing
+from src import audio_io
 
 interface = interface.CreatorInterface()
 recording = None
@@ -65,7 +65,7 @@ while interface.running:
 
             # ---------------------------------------- HANDLE CSV FILE -------------------------------------------------
 
-            csv_file_name = "../Dependencies/csv_data/positional_data" + str(number_of_recordings_done) + ".csv"
+            csv_file_name = "../dependencies/csv_data/positional_data" + str(number_of_recordings_done) + ".csv"
             if not os.path.isfile(csv_file_name):
                 pd.DataFrame(positional_data).to_csv(csv_file_name, header=None, index=None)
                 number_of_recordings_done += 1
