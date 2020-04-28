@@ -69,9 +69,9 @@ def apply_binaural_filtering(input_signal, positional_data):
     filter_state_left = 0
 
     for position in positional_data:
-        angle = position[0][0]
-        radius = position[0][1]
-        duration = position[1]
+        angle = position[0]
+        radius = position[1]
+        duration = position[2]
 
         start_index = elapsed_duration
         elapsed_duration += duration
@@ -118,15 +118,15 @@ def split_audio_data(data):
         elapsed_duration_reverb += data[i][1]
 
         if (data[i][0]["angle"], data[i][0]["radius"]) != current_position:
-            positional_data.append([current_position, elapsed_duration_positional])
+            positional_data.append([current_position[0], current_position[1], elapsed_duration_positional])
             elapsed_duration_positional = 0
             current_position = (data[i][0]["angle"], data[i][0]["radius"])
 
         elapsed_duration_positional += data[i][1]
 
     reverb_data.append([current_reverb, elapsed_duration_reverb])
-    positional_data.append([current_position, elapsed_duration_positional])
-
+    positional_data.append([current_position[0], current_position[1], elapsed_duration_positional])
+    print("pos data; ", positional_data)
     return positional_data, reverb_data
 
 # sampling_freq = 48000

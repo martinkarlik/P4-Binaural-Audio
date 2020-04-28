@@ -2,21 +2,17 @@ import sofa
 import numpy as np
 import sounddevice as sd
 import pandas as pd
-import csv
 import os.path
-import soundfile as sf
-from scipy.signal import *
-import threading
 
 from src import interface
 from src import audio_processing
 from src import audio_io
+from src import file_names
 
 interface = interface.CreatorInterface()
 recording = None
 playback = None
 
-number_of_recordings_done = 0
 
 while interface.running:
     interface.update()
@@ -38,10 +34,6 @@ while interface.running:
 
     elif interface.audio_manager.playback_state["in_process"]:
 
-        # playback.get_chunk()
-        # playback.process_chunk()
-        # playback.play_chunk()
-
         if playback.done:
             interface.audio_manager.playback_state["stopped"] = True
             playback.done = False
@@ -54,7 +46,7 @@ while interface.running:
 
             total_frames = np.sum(audio_data[:, 1])
             audio_data[:, 1] = np.divide(audio_data[:, 1], total_frames)
-            print(audio_data)
+            #print(audio_data)
 
             for sample in audio_data:
                 sample[1] = int(sample[1] * len(recording.get_data()))
@@ -65,17 +57,19 @@ while interface.running:
 
             # ---------------------------------------- HANDLE CSV FILE -------------------------------------------------
 
-            csv_file_name = "../dependencies/csv_data/positional_data" + str(number_of_recordings_done) + ".csv"
-            if not os.path.isfile(csv_file_name):
+            csv_file_name = file_names.get_csv_file_path()
+            if os.path.isfile(csv_file_name):
+                file_names.increase_number_of_csv_created()
                 pd.DataFrame(positional_data).to_csv(csv_file_name, header=None, index=None)
-                number_of_recordings_done += 1
-            csv_loaded = list(csv.reader(open(csv_file_name)))
-            csv_loaded = np.array(csv_loaded)
-            print("csv shape: ", csv_loaded.shape)
+            else:
+                pd.DataFrame(positional_data).to_csv(csv_file_name, header=None, index=None)
 
             output = audio_processing.apply_binaural_filtering(recording.get_data(), positional_data)
             sd.play(output)
             sd.wait()
+
+
+
 
         # sd.play(output)
         # sd.wait()
