@@ -1,22 +1,31 @@
 import threading
+
+import sofa
 import sounddevice as sd
 import numpy as np
 import librosa
-from scipy.signal import fftconvolve
+from scipy.signal import fftconvolve, lfilter_zi, lfilter
+
+from Source import creator
 
 signal, sampling_freq = librosa.load('../Dependencies/Audio/church_balcony.wav', sr=44100)
 signal = np.reshape(signal, (-1, 1))
+hrtf_database = sofa.Database.open('../Dependencies/Sofa/QU_KEMAR_anechoic_1m.sofa')
+ir_ear1 = hrtf_database.Data.IR.get_values(indices={"M": 1, "R": 0, "E": 0})
+ir_ear2 = hrtf_database.Data.IR.get_values(indices={"M": 1, "R": 1, "E": 0})
+
 
 class AudioIOThread(threading.Thread):
 
     def __init__(self):
         threading.Thread.__init__(self)
         self.sampling_freq = 44100
-        self.chunk_length = 0.03
+        self.chunk_length = 0.5
         self.chunk_samples = int(self.sampling_freq * self.chunk_length)
 
         # sd.default.samplerate = self.sampling_freq
         # sd.default.channels = (1, 2)
+
 
 class RecordingThread(AudioIOThread):
 
@@ -24,7 +33,8 @@ class RecordingThread(AudioIOThread):
         super().__init__()
         self.rec_data = np.array([[]])
 
-        self.rec_stream = sd.InputStream(samplerate=self.sampling_freq, channels=1, blocksize=self.chunk_samples, callback=self.callback)
+        self.rec_stream = sd.InputStream(samplerate=self.sampling_freq, channels=1, blocksize=self.chunk_samples,
+                                         callback=self.callback)
 
     def callback(self, indata, frames, time, status):
 
@@ -49,11 +59,15 @@ class PlaybackThread(AudioIOThread):
     def __init__(self):
         super().__init__()
         self.play_data = np.array([[]])
-        self.output_data = np.array([[]])
+        self.output_ear1 = np.array([[]])
+        self.output_ear2 = np.array([[]])
+        self.filter_state1 = 0
+        self.filter_state2 = 0
         self.done = False
         self.counter = 0
 
-        self.play_stream = sd.OutputStream(samplerate=self.sampling_freq, channels=1, blocksize=self.chunk_samples, callback=self.callback)
+        self.play_stream = sd.OutputStream(samplerate=self.sampling_freq, channels=2, blocksize=self.chunk_samples,
+                                           callback=self.callback)
 
     def run(self):
         # sd.play(self.play_data)
@@ -87,36 +101,44 @@ class PlaybackThread(AudioIOThread):
     #     print(outdata)
 
     def callback(self, outdata, frames, time, status):
-        output = fftconvolve(self.play_data[self.counter * frames:(self.counter+1) * frames], signal, mode="same")
-        print("output shape: ", output.shape)
-        self.output_data = np.append(output, output, axis=0)
-        # print("outdata shape: ", self.output_data)
-        outdata[:] = self.output_data[self.counter * frames:(self.counter+1) * frames]
-        print("outdata", outdata.shape)
-        self.counter += 1
+        # checks to see if there are still chunks left to process
+        if self.counter * frames < len(self.play_data) - 1:
+
+            ir_ear1 = hrtf_database.Data.IR.get_values(indices={"M": 90, "R": 0, "E": 0})
+            ir_ear2 = hrtf_database.Data.IR.get_values(indices={"M": 90, "R": 1, "E": 0})
+
+            self.output_ear1 = lfilter(ir_ear1, 1, self.play_data[self.counter * frames:(self.counter + 1) * frames, :].transpose())
+            self.output_ear2 = lfilter(ir_ear2, 1, self.play_data[self.counter * frames:(self.counter + 1) * frames, :].transpose())
+            # playback
+            outdata[:] = np.append(self.output_ear1.transpose(), self.output_ear2.transpose(), axis=1) * 5
+
+            # outdata[:] = self.play_data[self.counter * frames:(self.counter + 1) * frames]
+            # print(outdata)
+            self.counter += 1
+        else:
+            self.play_stream.stop()
 
     def set_data(self, data):
         self.play_data = data
 
 
-print("start")
 input()
+print("started")
 recording = RecordingThread()
 recording.start()
 
-print("stop")
 input()
+print("stopped")
 recording.stop()
 playback = PlaybackThread()
 playback.set_data(recording.get_data())
 
-print("play")
 input()
+print("playing")
 playback.start()
 
 input()
 print("stopped")
-
 
 # sampling_freq = 48000
 # sd.default.samplerate = sampling_freq
