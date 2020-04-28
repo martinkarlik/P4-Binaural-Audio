@@ -190,10 +190,12 @@ class CreatorInterface(Interface):
                         self.current_audio_data["reverb"] != self.previous_audio_data["reverb"]:
                     self.full_audio_data.append((self.previous_audio_data, playback_state["timer"].get_time()))
 
+                    print(playback_state["timer"].get_time())
                     self.previous_audio_data = self.current_audio_data.copy()
 
             elif playback_state["stopped"]:
                 self.full_audio_data.append([self.current_audio_data, playback_state["timer"].get_time()])
+                print(playback_state["timer"].get_time())
 
     class AudioManager:
 
@@ -292,9 +294,9 @@ class CreatorInterface(Interface):
         self.audio_manager.check_events(self.screen, mouse_data)
 
         self.audio_controller.check_events(self.screen, mouse_data, self.audio_manager.playback_state)
-
-        if self.audio_manager.playback_state["in_process"]:
-            print(self.audio_manager.playback_state["timer"].get_time())
+        #
+        # if self.audio_manager.playback_state["in_process"]:
+        #     print(self.audio_manager.playback_state["timer"].get_time())
 
         # display all the visuals
         self.screen.fill((20, 40, 80))

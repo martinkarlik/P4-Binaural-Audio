@@ -26,7 +26,7 @@ class RecordingThread(AudioIOThread):
 
         self.rec_stream = sd.InputStream(samplerate=self.sampling_freq, channels=1, blocksize=self.chunk_samples, callback=self.callback)
 
-    def in_callback(self, indata, frames, time, status):
+    def callback(self, indata, frames, time, status):
 
         if self.rec_data.size == 0:
             self.rec_data = indata
@@ -60,56 +60,62 @@ class PlaybackThread(AudioIOThread):
         # self.play_stream.start()
         self.done = True
 
-    # def out_callback(self, indata, outdata, frames, time, status):
-    #
-    #     signal, sampling_freq = librosa.load('../Dependencies/Audio/church_balcony.wav', sr=44100)
-    #     signal = np.reshape(signal, (-1, 1))
-    #
-    #     #current_chunk = 0
-    #
-    #     for x in range(int(len(self.mic_data)/self.total_samples)):
-    #         current_chunk = x * self.total_samples
-    #         if len(indata) == 0:
-    #             indata[:] = self.mic_data[0:self.total_samples]
-    #         else:
-    #             indata[:] = self.mic_data[0 + current_chunk:self.total_samples + current_chunk]
-    #         print(current_chunk)
-    #
-    #
-    #
-    #
-    #     #output = fftconvolve(indata, signal, mode="full")
-    #     # output = lfilter((signal[0:30000, 0]), 1, guitar_signal.transpose())
-    #     #output = np.append(output.transpose(), output.transpose(), axis=1)
-    #
-    #     #outdata[:] = output
-    #
-    #     print(outdata)
-
     def callback(self, outdata, frames, time, status):
+        # if self.counter > len(self.play_data) / frames:
+        #     return
+
+        if self.counter > 50:
+            return
+
         outdata[:] = self.play_data[self.counter * frames:(self.counter+1) * frames]
         self.counter += 1
 
     def set_data(self, data):
         self.play_data = data
 
-    # print("start")
-    # input()
-    # recording = RecordingThread(1)
-    # recording.start()
-    #
-    # print("stop")
-    # input()
-    # recording.stop()
-    # playback = PlaybackThread(2)
-    # playback.set_data(recording.get_data())
-    #
-    # print("play")
-    # input()
-    # playback.start()
-    #
-    # input()
-    # print("stopped")
+# def out_callback(self, indata, outdata, frames, time, status):
+#
+#     signal, sampling_freq = librosa.load('../Dependencies/Audio/church_balcony.wav', sr=44100)
+#     signal = np.reshape(signal, (-1, 1))
+#
+#     #current_chunk = 0
+#
+#     for x in range(int(len(self.mic_data)/self.total_samples)):
+#         current_chunk = x * self.total_samples
+#         if len(indata) == 0:
+#             indata[:] = self.mic_data[0:self.total_samples]
+#         else:
+#             indata[:] = self.mic_data[0 + current_chunk:self.total_samples + current_chunk]
+#         print(current_chunk)
+#
+#
+#
+#
+#     #output = fftconvolve(indata, signal, mode="full")
+#     # output = lfilter((signal[0:30000, 0]), 1, guitar_signal.transpose())
+#     #output = np.append(output.transpose(), output.transpose(), axis=1)
+#
+#     #outdata[:] = output
+#
+#     print(outdata)
+
+# print("start")
+# input()
+# recording = RecordingThread(1)
+# recording.start()
+#
+# print("stop")
+# input()
+# recording.stop()
+# playback = PlaybackThread(2)
+# playback.set_data(recording.get_data())
+#
+# print("play")
+# input()
+# playback.start()
+#
+# input()
+# print("stopped")
 
 
 # sampling_freq = 48000
