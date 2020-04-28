@@ -2,6 +2,7 @@ import pygame
 import numpy as np
 import threading
 import time
+from scipy.interpolate import interp1d
 
 
 class Interface:
@@ -51,6 +52,10 @@ class Interface:
             distance_x = abs(abs_pos[0] - target[0])
             distance_y = abs(abs_pos[1] - target[1])
             return distance_x, distance_y
+        #
+        # def map_pos(self, values, target_values):
+        #     mapped = interp1d([values], [target_values])
+        #     return mapped
 
         def get_moved_by_polar(self, surface, polar):
             abs_pos = self.get_abs_pos(surface)
@@ -92,6 +97,13 @@ class Interface:
             super().__init__(image, pos, show)
             self.font = pygame.font.Font('freesansbold.ttf', 32)
             # self.text = self.font.render('') sth sth sth
+
+    # class Slider(Widget):
+    #     def __init__(self, val, min_val, max_val, image, pos, shown=True):
+    #         super().__init__(image, pos, shown)
+    #         self.val = val
+    #         self.min_val = min_val
+    #         self.max_val = max_val
 
 
 class CreatorInterface(Interface):
@@ -367,8 +379,9 @@ class ListenerInterface(Interface):
             self.head = head
             self.slider = slider
             self.background = background
+            self.slider_position = 25
+            self.playing_progress = 1
 
-            self.playing_progress = 0
 
             self.paused_state = dict(started=False)
             self.playing_state = dict(started=False,  paused=False)
@@ -380,9 +393,9 @@ class ListenerInterface(Interface):
             self.slider.display(surface)
             self.pulse.display(surface)
 
-            if self.playing_progress > 0:
-                selection_pos = (pygame.mouse.get_pos()[0], self.slider.get_abs_pos(surface)[1])
-                pygame.draw.circle(surface, (255, 255, 255), selection_pos, 20)
+
+            selection_pos = (self.slider_position, self.slider.get_abs_pos(surface)[1])
+            pygame.draw.circle(surface, (255, 255, 255), selection_pos, 20)
 
             for button in self.buttons.values():
                 if button.shown:
@@ -395,9 +408,11 @@ class ListenerInterface(Interface):
 
             mouse_inside = distance_to_mouse_x < self.slider.size[0]/2 and distance_to_mouse_y < self.slider.size[1]/2 and mouse_data["pressed"]
 
+            self.playing_progress = interp1d([25, 455], [0, 100])
+            print(self.playing_progress(self.slider_position))
+
             if mouse_inside:
-                self.playing_progress = pygame.mouse.get_pos()[0]
-                print(self.playing_progress)
+                self.slider_position = mouse_data["pos"][0]
 
             for button in self.buttons.values():
                 if button.shown:
