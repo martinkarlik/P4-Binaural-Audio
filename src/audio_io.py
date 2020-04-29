@@ -32,7 +32,8 @@ class RecordingThread(AudioIOThread):
         super().__init__()
         self.rec_data = np.array([[]])
 
-        self.rec_stream = sd.InputStream(samplerate=self.sampling_freq, channels=2, blocksize=self.chunk_samples, callback=self.callback)
+        self.rec_stream = sd.InputStream(samplerate=self.sampling_freq, channels=2, blocksize=self.chunk_samples,
+                                         callback=self.callback)
 
     def callback(self, indata, frames, time, status):
 
@@ -73,7 +74,8 @@ class PlaybackThread(AudioIOThread):
         self.filter_state_left = None
         self.filter_state_right = None
 
-        self.play_stream = sd.OutputStream(samplerate=self.sampling_freq, channels=2, blocksize=self.chunk_samples, callback=self.callback)
+        self.play_stream = sd.OutputStream(samplerate=self.sampling_freq, channels=2, blocksize=self.chunk_samples,
+                                           callback=self.callback)
 
     def run(self):
         self.play_stream.start()
@@ -81,17 +83,19 @@ class PlaybackThread(AudioIOThread):
     def callback(self, outdata, frames, time, status):
 
         play_data_transposed = self.play_data.transpose()
+        #print("play_data_transposed: ", play_data_transposed.shape)
 
         start_index = self.counter * frames
         end_index = (self.counter + 1) * frames
 
-        ir_ear_right = self.hrtf_database[0.8].Data.IR.get_values(indices={"M": (self.counter * 4) % 360, "R": 0, "E": 0})
-        ir_ear_left = self.hrtf_database[0.8].Data.IR.get_values(indices={"M": (self.counter * 4) % 360, "R": 1, "E": 0})
+        ir_ear_right = self.hrtf_database[0.8].Data.IR.get_values(
+            indices={"M": (self.counter * 4) % 360, "R": 0, "E": 0})
+        ir_ear_left = self.hrtf_database[0.8].Data.IR.get_values(
+            indices={"M": (self.counter * 4) % 360, "R": 1, "E": 0})
 
         if self.filter_state_left is None and self.filter_state_right is None:
             self.filter_state_left = np.zeros([len(ir_ear_left) - 1])
             self.filter_state_right = np.zeros([len(ir_ear_left) - 1])
-
 
         outdata[:, 0], self.filter_state_left = \
             lfilter(ir_ear_left, 1, play_data_transposed[0, start_index:end_index], zi=self.filter_state_left)

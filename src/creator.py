@@ -1,18 +1,18 @@
 import numpy as np
 import sounddevice as sd
 import pandas as pd
-import csv
 import os.path
+import soundfile as sf
 
 from src import interface
 from src import audio_processing
 from src import audio_io
+from src import file_names
 
 interface = interface.CreatorInterface()
 recording = None
 playback = None
 
-number_of_recordings_done = 0
 
 while interface.running:
     interface.update()
@@ -50,6 +50,18 @@ while interface.running:
 
         # ---------------------------------------- HANDLE CSV FILE -------------------------------------------------
 
+        # Wasn't sure which block of code for this csv to choose when merging, deal with this information accordingly
+        # csv_file_name = file_names.get_csv_file_path()
+        # wav_file_name = file_names.get_wav_file_path()
+        # if os.path.isfile(csv_file_name):
+        #     file_names.increase_number_of_recordings_created()
+        #     sf.write(wav_file_name, recording.get_data(), audio_io.sampling_freq)
+        #     pd.DataFrame(positional_data).to_csv(csv_file_name, header=None, index=None)
+        # else:
+        #     pd.DataFrame(positional_data).to_csv(csv_file_name, header=None, index=None)
+        #     sf.write(wav_file_name, recording.get_data(), audio_io.sampling_freq)
+
+
         csv_file_name = "../dependencies/csv_data/positional_data" + str(number_of_recordings_done) + ".csv"
         if not os.path.isfile(csv_file_name):
             pd.DataFrame(positional_data).to_csv(csv_file_name, header=None, index=None)
@@ -61,4 +73,3 @@ while interface.running:
         output = audio_processing.apply_binaural_filtering(recording.get_data(), positional_data)
         sd.play(output)
         sd.wait()
-

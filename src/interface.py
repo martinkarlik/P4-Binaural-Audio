@@ -200,6 +200,7 @@ class CreatorInterface(Interface):
                         self.current_audio_data["radius"] = r
 
             if playback_state["started"]:
+                playback_state["stopped"] = False
                 self.previous_audio_data = self.current_audio_data.copy()
 
             if playback_state["in_process"]:
@@ -279,16 +280,6 @@ class CreatorInterface(Interface):
 
             self.recording_state["started"] = self.buttons["rec_start_button"].clicked
             self.recording_state["stopped"] = self.buttons["rec_stop_button"].clicked
-
-            if self.recording_state["started"]:
-                self.recording_state["timer"] = self.Timer()
-                self.recording_state["timer"].start()
-                self.recording_state["in_process"] = True
-
-            elif self.recording_state["stopped"]:
-                self.recording_state["timer"].active = False
-                self.recording_state["timer"].join()
-                self.recording_state["in_process"] = False
 
             if self.buttons["rec_start_button"].clicked:
                 self.buttons["rec_start_button"].replace(self.buttons["rec_stop_button"])
@@ -409,7 +400,7 @@ class ListenerInterface(Interface):
             mouse_inside = distance_to_mouse[0] < self.slider.size[0]/2 and distance_to_mouse[1] < self.slider.size[1]/2 and mouse_data["pressed"]
 
             self.playing_progress = interp1d([25, 455], [0, 100])
-            print(self.playing_progress(self.slider_position))
+            #print(self.playing_progress(self.slider_position))
 
             if mouse_inside:
                 self.slider_position = mouse_data["pos"][0]
@@ -419,13 +410,22 @@ class ListenerInterface(Interface):
                     mouse_inside = button.get_euclidean_distance(surface, mouse_data["pos"]) < button.radius
                     button.hovered, button.clicked = mouse_inside, mouse_inside and mouse_data["clicked"]
 
-            self.playing_state["started"] = self.buttons["play_button"].clicked
-            self.playing_state["paused"] = self.buttons["pause_button"].clicked
+            self.playback_state["started"] = self.buttons["play_button"].clicked
+            self.playback_state["paused"] = self.buttons["pause_button"].clicked
 
-            if self.buttons["play_button"].clicked:
+            if self.playback_state["started"]:
+                self.playback_state["in_process"] = True
                 self.buttons["play_button"].replace(self.buttons["pause_button"])
-            elif self.buttons["pause_button"].clicked:
+
+            elif self.playback_state["paused"]:
+                self.playback_state["in_process"] = False
+                self.playback_state["paused"] = True
                 self.buttons["pause_button"].replace(self.buttons["play_button"])
+
+            elif self.playback_state["stopped"]:
+                self.playback_state["in_process"] = False
+                self.buttons["pause_button"].replace(self.buttons["play_button"])
+
 
     def update(self):
         mouse_data = dict(pos=pygame.mouse.get_pos(), pressed=pygame.mouse.get_pressed()[0], clicked=False)
@@ -441,5 +441,3 @@ class ListenerInterface(Interface):
         self.player_controller.display(self.screen)
 
         pygame.display.update()
-
-
