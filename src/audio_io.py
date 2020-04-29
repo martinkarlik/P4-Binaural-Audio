@@ -78,7 +78,6 @@ class PlaybackThread(AudioIOThread):
     def run(self):
         self.play_stream.start()
 
-
     def callback(self, outdata, frames, time, status):
 
         play_data_transposed = self.play_data.transpose()

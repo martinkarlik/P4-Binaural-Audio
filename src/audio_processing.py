@@ -15,11 +15,34 @@ def preprocess_data(rec_data, audio_data):
 
     audio_data[len(audio_data) - 1][1] += abs(len(rec_data) - np.sum(audio_data[:, 1]))
 
-    positional_data, reverb_data = split_audio_data(audio_data)
+    positional_data = []
+    reverb_data = []
+    elapsed_duration_positional = 0
+    elapsed_duration_reverb = 0
 
-    output = apply_binaural_filtering(rec_data, positional_data)
-    sd.play(output)
-    sd.wait()
+    current_reverb = audio_data[0][0]["reverb"]
+    current_position = (audio_data[0][0]["angle"], audio_data[0][0]["radius"])
+    for i in np.arange(0, len(audio_data)):
+
+        if audio_data[i][0]["reverb"] != current_reverb:
+            reverb_data.append([current_reverb, elapsed_duration_reverb])
+            elapsed_duration_reverb = 0
+            current_reverb = audio_data[i][0]["reverb"]
+
+        elapsed_duration_reverb += audio_data[i][1]
+
+        if (audio_data[i][0]["angle"], audio_data[i][0]["radius"]) != current_position:
+            positional_data.append([current_position, elapsed_duration_positional])
+            elapsed_duration_positional = 0
+            current_position = (audio_data[i][0]["angle"], audio_data[i][0]["radius"])
+
+        elapsed_duration_positional += audio_data[i][1]
+
+    reverb_data.append([current_reverb, elapsed_duration_reverb])
+    positional_data.append([current_position, elapsed_duration_positional])
+
+    return positional_data, reverb_data
+
 
 
 def add_reverb(input_signal, sampling_freq, reverb_type):
@@ -56,9 +79,11 @@ def apply_binaural_filtering(input_signal, positional_data):
 
     hrtf_database = {0.2: sofa_0_5, 0.4: sofa_1, 0.8: sofa_2, 1.2: sofa_3}
 
+
     input_signal_transposed = np.reshape(input_signal, (-1, 1)).transpose()
 
     total_samples = len(input_signal)
+
     output_ear_right = np.zeros([1, total_samples])
     output_ear_left = np.zeros([1, total_samples])
 
@@ -76,6 +101,7 @@ def apply_binaural_filtering(input_signal, positional_data):
         start_index = elapsed_duration
         elapsed_duration += duration
         end_index = elapsed_duration
+
 
         if angle == -1:  # don't apply any filters, output should stay stereo
             output_ear_right[0, start_index:end_index] = input_signal_transposed[0, start_index:end_index]
@@ -98,6 +124,8 @@ def apply_binaural_filtering(input_signal, positional_data):
 
     output = np.append(output_ear_right.transpose(), output_ear_left.transpose(), axis=1)
     return output
+
+
 
 def split_audio_data(data):
 
@@ -128,6 +156,7 @@ def split_audio_data(data):
     positional_data.append([current_position, elapsed_duration_positional])
 
     return positional_data, reverb_data
+
 
 # sampling_freq = 48000
 # sd.default.samplerate = sampling_freq

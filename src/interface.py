@@ -21,11 +21,8 @@ class Interface:
 
         initial_scale_value = 1
 
-        def __init__(self, image, pos, shown=True):
-            self.image = image
+        def __init__(self, pos, shown=True):
             self.pos = pos
-            self.size = (image.get_rect().width * self.initial_scale_value, image.get_rect().height * self.initial_scale_value)
-            self.radius = self.size[0] / 2
             self.shown = shown
 
         def get_angle(self, surface, target):
@@ -43,19 +40,15 @@ class Interface:
                 (quarter - 1) * 90 + int(quarter == 2 or quarter == 4) * angle + int(quarter == 1 or quarter == 3) * (
                         90 - angle))
 
-        def get_distance(self, surface, target):
+        def get_euclidean_distance(self, surface, target):
             abs_pos = self.get_abs_pos(surface)
             return np.sqrt(np.square(abs_pos[0] - target[0]) + np.square(abs_pos[1] - target[1]))
 
-        def get_manhatan_distance(self, surface, target):
+        def get_manhattan_distance(self, surface, target):
             abs_pos = self.get_abs_pos(surface)
             distance_x = abs(abs_pos[0] - target[0])
             distance_y = abs(abs_pos[1] - target[1])
             return distance_x, distance_y
-        #
-        # def map_pos(self, values, target_values):
-        #     mapped = interp1d([values], [target_values])
-        #     return mapped
 
         def get_moved_by_polar(self, surface, polar):
             abs_pos = self.get_abs_pos(surface)
@@ -73,37 +66,39 @@ class Interface:
         def get_abs_pos(self, surface):
             return np.multiply(self.pos, surface.get_size()).astype(int)
 
-        def display(self, surface, rotate_value=0, scale_value=1):  # not sure if I can say that
-            image = pygame.transform.rotozoom(self.image, rotate_value, self.initial_scale_value * scale_value)
-            image_rect = image.get_rect(center=self.get_abs_pos(surface))
-            surface.blit(image, image_rect)
-
         def replace(self, other):
             self.shown, other.shown = False, True
 
     class Button(Widget):
-        def __init__(self, image, pos, shown=True):
-            super().__init__(image, pos, shown)
+        def __init__(self, image, pos, shown=True, ):
+            super().__init__(pos, shown)
+            self.image = image
+            self.size = (image.get_rect().width * self.initial_scale_value, image.get_rect().height * self.initial_scale_value)
+            self.radius = self.size[0] / 2
             self.hovered = False
             self.pressed = False
             self.clicked = False
+
+        def display(self, surface, rotate_value=0, scale_value=1):
+            image = pygame.transform.rotozoom(self.image, rotate_value, self.initial_scale_value * scale_value)
+            image_rect = image.get_rect(center=self.get_abs_pos(surface))
+            surface.blit(image, image_rect)
 
         def replace(self, other):
             super().replace(other)
             self.hovered, self.clicked = False, False
 
     class TextField(Widget):
-        def __init__(self, image, pos, show=True):
-            super().__init__(image, pos, show)
-            self.font = pygame.font.Font('freesansbold.ttf', 32)
-            # self.text = self.font.render('') sth sth sth
 
-    # class Slider(Widget):
-    #     def __init__(self, val, min_val, max_val, image, pos, shown=True):
-    #         super().__init__(image, pos, shown)
-    #         self.val = val
-    #         self.min_val = min_val
-    #         self.max_val = max_val
+        def __init__(self, pos, shown=True):
+            super().__init__(pos, shown)
+            self.font = pygame.font.Font('freesansbold.ttf', 32)
+            self.text = "00:00"
+
+        def display(self, surface, rotate_value=0, scale_value=1):
+            text = self.font.render(self.text, False, (0, 0, 0))
+            text_rect = text.get_rect(center=self.get_abs_pos(surface))
+            surface.blit(text, text_rect)
 
 
 class CreatorInterface(Interface):
@@ -113,7 +108,8 @@ class CreatorInterface(Interface):
         super().__init__()
         pygame.display.set_caption("3DAB CREATOR")
 
-        self.audio_manager = self.AudioManager(dict(
+        self.audio_manager = self.AudioManager(
+            dict(
             play_button=self.Button(pygame.image.load('../dependencies/images/play_button.png'), [0.804, 0.524]),
             pause_button=self.Button(pygame.image.load('../dependencies/images/pause_button.png'), [0.804, 0.524],
                                      False),
@@ -123,6 +119,10 @@ class CreatorInterface(Interface):
                                          [0.804, 0.183]),
             rec_stop_button=self.Button(pygame.image.load('../dependencies/images/record_stop_button.png'),
                                         [0.804, 0.183], False)
+            ),
+            dict(
+                rec_timer=self.TextField([0.804, 0.33], True),
+                play_timer=self.TextField([0.804, 0.65], True)
             )
         )
 
@@ -140,13 +140,12 @@ class CreatorInterface(Interface):
 
     class AudioController:
 
-        NEW_ANGLE_THRESHOLD = 5
-
         def __init__(self, head, circle, selection, reverb_buttons):
             self.head = head
             self.circle = circle
             self.selection = selection
             self.reverb_buttons = reverb_buttons
+
             self.radii = [0.2, 0.4, 0.8, 1.2]
             # self.radii = [0.5, 1, 2, 3]
 
@@ -174,11 +173,10 @@ class CreatorInterface(Interface):
         def check_events(self, surface, mouse_data, playback_state):
 
             for reverb_button in self.reverb_buttons.values():
-                mouse_inside = reverb_button.get_distance(surface, mouse_data["pos"]) < reverb_button.radius
+                mouse_inside = reverb_button.get_euclidean_distance(surface, mouse_data["pos"]) < reverb_button.radius
                 reverb_button.hovered, reverb_button.pressed = mouse_inside, mouse_inside and mouse_data["clicked"]
                 # find which reverb button, if any, is active now
 
-            # This is very inelegant and also stupid but i guess it shows how dumb i am
             if self.reverb_buttons["anechoic"].pressed:
                 self.current_audio_data["reverb"] = "anechoic"
             if self.reverb_buttons["forest"].pressed:
@@ -188,11 +186,12 @@ class CreatorInterface(Interface):
             if self.reverb_buttons["cave"].pressed:
                 self.current_audio_data["reverb"] = "cave"
 
-            distance_to_mouse = self.circle.get_distance(surface, mouse_data["pos"])
+            distance_to_mouse = self.circle.get_euclidean_distance(surface, mouse_data["pos"])
             mouse_inside = distance_to_mouse < self.circle.radius * 1.4 and mouse_data["pressed"]
+
             if mouse_inside:
-                shortest_distance = self.circle.radius * 1.4
                 self.current_audio_data["angle"] = self.head.get_angle(surface, mouse_data["pos"])
+                shortest_distance = self.circle.radius * 1.4
                 self.current_audio_data["radius"] = 0
                 for r in self.radii:
                     distance = np.abs(distance_to_mouse - self.circle.radius * r)
@@ -205,7 +204,7 @@ class CreatorInterface(Interface):
 
             if playback_state["in_process"]:
 
-                if abs(self.current_audio_data["angle"] - self.previous_audio_data["angle"]) > self.NEW_ANGLE_THRESHOLD or \
+                if self.current_audio_data["angle"] != self.previous_audio_data["angle"] or \
                         self.current_audio_data["radius"] != self.previous_audio_data["radius"] or \
                         self.current_audio_data["reverb"] != self.previous_audio_data["reverb"]:
                     self.full_audio_data.append((self.previous_audio_data, playback_state["timer"].get_time()))
@@ -213,8 +212,8 @@ class CreatorInterface(Interface):
                     print(playback_state["timer"].get_time())
                     self.previous_audio_data = self.current_audio_data.copy()
 
-            elif playback_state["stopped"]:
-                self.full_audio_data.append([self.current_audio_data, playback_state["timer"].get_time()])
+            if playback_state["stopped"]:
+                self.full_audio_data.append((self.current_audio_data, playback_state["timer"].get_time()))
                 print(playback_state["timer"].get_time())
 
     class AudioManager:
@@ -222,26 +221,21 @@ class CreatorInterface(Interface):
         class Timer(threading.Thread):
             def __init__(self):
                 super().__init__()
-                self.active = True
+                self.active = False
                 self.initial_time = 0
 
             def run(self):
                 self.initial_time = time.time()
-
-                # while self.active:
-                #     t0 = time.time()
-                #     t1 = t0
-                #     while t0 == t1:
-                #         t1 = time.time()
-                #     self.current_time += t1 - t0
+                self.active = True
 
             def get_time(self):
-                return time.time() - self.initial_time
+                return time.time() - self.initial_time if self.active else 0.0
 
                 # return self.current_time
 
-        def __init__(self, buttons):
+        def __init__(self, buttons, text_fields):
             self.buttons = buttons
+            self.text_fields = text_fields
 
             self.recording_state = dict(started=False, stopped=False, in_process=False, timer=self.Timer())
             self.playback_state = dict(started=False, stopped=False, in_process=False, paused=False, timer=self.Timer())
@@ -252,10 +246,15 @@ class CreatorInterface(Interface):
                 if button.shown:
                     button.display(surface, 0, 1 if not button.hovered else 1.1)
 
+            for text_field in self.text_fields.values():
+                if text_field.shown:
+                    text_field.display(surface, 0, 1)
+
         def check_events(self, surface, mouse_data):
+
             for button in self.buttons.values():
                 if button.shown:
-                    mouse_inside = button.get_distance(surface, mouse_data["pos"]) < button.radius
+                    mouse_inside = button.get_euclidean_distance(surface, mouse_data["pos"]) < button.radius
                     button.hovered, button.clicked = mouse_inside, mouse_inside and mouse_data["clicked"]
 
             self.playback_state["started"] = self.buttons["play_button"].clicked
@@ -296,6 +295,14 @@ class CreatorInterface(Interface):
             elif self.buttons["rec_stop_button"].clicked:
                 self.buttons["rec_stop_button"].replace(self.buttons["rec_start_button"])
 
+            rec_time = int(self.recording_state["timer"].get_time())
+            play_time = int(self.playback_state["timer"].get_time())
+            self.text_fields["rec_timer"].text = f"0{rec_time // 60 }:0{rec_time % 60}"
+            self.text_fields["play_timer"].text = f"0{play_time // 60 }:0{play_time % 60}"
+
+
+
+
     def update(self):
         mouse_data = dict(pos=pygame.mouse.get_pos(), pressed=pygame.mouse.get_pressed()[0], clicked=False)
 
@@ -323,12 +330,6 @@ class CreatorInterface(Interface):
         self.audio_controller.display(self.screen)
 
         pygame.display.update()
-
-
-
-
-
-
 
 
 
@@ -384,8 +385,7 @@ class ListenerInterface(Interface):
             self.slider_position = 25
             self.playing_progress = 1
 
-
-            self.paused_state = dict(started=False)
+            # self.paused_state = dict(started=False)
             self.playing_state = dict(started=False,  paused=False)
 
         def display(self, surface):
@@ -394,7 +394,6 @@ class ListenerInterface(Interface):
             self.head.display(surface)
             self.slider.display(surface)
             self.pulse.display(surface)
-
 
             selection_pos = (self.slider_position, self.slider.get_abs_pos(surface)[1])
             pygame.draw.circle(surface, (255, 255, 255), selection_pos, 20)
@@ -405,10 +404,9 @@ class ListenerInterface(Interface):
 
         def check_events(self, surface, mouse_data):
 
-            distance_to_mouse_x = self.slider.get_manhatan_distance(surface, mouse_data["pos"])[0]
-            distance_to_mouse_y = self.slider.get_manhatan_distance(surface, mouse_data["pos"])[1]
+            distance_to_mouse = self.slider.get_manhattan_distance(surface, mouse_data["pos"])
 
-            mouse_inside = distance_to_mouse_x < self.slider.size[0]/2 and distance_to_mouse_y < self.slider.size[1]/2 and mouse_data["pressed"]
+            mouse_inside = distance_to_mouse[0] < self.slider.size[0]/2 and distance_to_mouse[1] < self.slider.size[1]/2 and mouse_data["pressed"]
 
             self.playing_progress = interp1d([25, 455], [0, 100])
             print(self.playing_progress(self.slider_position))
@@ -418,7 +416,7 @@ class ListenerInterface(Interface):
 
             for button in self.buttons.values():
                 if button.shown:
-                    mouse_inside = button.get_distance(surface, mouse_data["pos"]) < button.radius
+                    mouse_inside = button.get_euclidean_distance(surface, mouse_data["pos"]) < button.radius
                     button.hovered, button.clicked = mouse_inside, mouse_inside and mouse_data["clicked"]
 
             self.playing_state["started"] = self.buttons["play_button"].clicked
