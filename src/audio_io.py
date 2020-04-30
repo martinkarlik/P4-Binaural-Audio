@@ -58,7 +58,7 @@ class PlaybackThread(AudioIOThread):
     def __init__(self):
         super().__init__()
         self.play_data = np.array([[]])
-
+        self.positional_data = np.array([[]])
         self.output_ear1 = np.array([[]])
         self.output_ear2 = np.array([[]])
 
@@ -88,31 +88,37 @@ class PlaybackThread(AudioIOThread):
     def callback(self, outdata, frames, time, status):
 
         play_data_transposed = self.play_data.transpose()
+        # print("play_data_transposed: ", play_data_transposed.shape)
 
-        pos_data = [2200, 7000, 4700]
-
-        0-1200, 1200-2400, 2400-3600
-
-        self.chunk_index * frames
+        # self.chunk_index * frames
 
         # Find position that corresponds to the middle of the chunk!
 
-        start_index = self.chunk_index * frames
-        end_index = (self.chunk_index + 1) * frames
+        start_index = self.counter * frames
+        end_index = (self.counter + 1) * frames
+        if len(self.positional_data) > 0:
+            if not float(self.positional_data[0, 1]) == 0.0:
 
-        ir_ear_right = self.hrtf_database[0.8].Data.IR.get_values(
-            indices={"M": self.chunk_index, "R": 0, "E": 0})
-        ir_ear_left = self.hrtf_database[0.8].Data.IR.get_values(
-            indices={"M": (self.chunk_index * 4) % 360, "R": 1, "E": 0})
+                ir_ear_right = self.hrtf_database[float(self.positional_data[0, 1])].Data.IR.get_values(
+                    indices={"M": int(self.positional_data[0, 0]), "R": 0, "E": 0})
+                ir_ear_left = self.hrtf_database[float(self.positional_data[0, 1])].Data.IR.get_values(
+                    indices={"M": int(self.positional_data[0, 0]), "R": 1, "E": 0})
 
-        if self.filter_state_left is None and self.filter_state_right is None:
-            self.filter_state_left = np.zeros([len(ir_ear_left) - 1])
-            self.filter_state_right = np.zeros([len(ir_ear_left) - 1])
+                if self.filter_state_left is None and self.filter_state_right is None:
+                    self.filter_state_left = np.zeros([len(ir_ear_left) - 1])
+                    self.filter_state_right = np.zeros([len(ir_ear_left) - 1])
 
-        outdata[:, 0], self.filter_state_left = \
-            lfilter(ir_ear_left, 1, play_data_transposed[0, start_index:end_index], zi=self.filter_state_left)
-        outdata[:, 1], self.filter_state_right = \
-            lfilter(ir_ear_right, 1, play_data_transposed[1, start_index:end_index], zi=self.filter_state_right)
+                outdata[:, 0], self.filter_state_left = \
+                    lfilter(ir_ear_left, 1, play_data_transposed[0, start_index:end_index], zi=self.filter_state_left)
+                outdata[:, 1], self.filter_state_right = \
+                    lfilter(ir_ear_right, 1, play_data_transposed[1, start_index:end_index], zi=self.filter_state_right)
+
+            else:
+                outdata[:, 0] = play_data_transposed[0, start_index:end_index]
+                outdata[:, 1] = play_data_transposed[1, start_index:end_index]
+        else:
+            outdata[:, 0] = play_data_transposed[0, start_index:end_index]
+            outdata[:, 1] = play_data_transposed[1, start_index:end_index]
 
         outdata[:, 0] = play_data_transposed[0, start_index:end_index]
         outdata[:, 1] = play_data_transposed[1, start_index:end_index]
@@ -124,8 +130,10 @@ class PlaybackThread(AudioIOThread):
             self.play_stream.stop()
             print("stopped")
 
-    def set_data(self, data):
-        self.play_data = data
+    def set_data(self, audio_data, positional_data=None, creator=True):
+        self.play_data = audio_data
+        if not creator:
+            self.positional_data = positional_data
 
 #
 # print("start")

@@ -17,6 +17,9 @@ class Interface:
 
         def __init__(self, pos, shown=True):
             self.pos = pos
+            self.size = (
+            image.get_rect().width * self.initial_scale_value, image.get_rect().height * self.initial_scale_value)
+            self.radius = self.size[0] / 2
             self.shown = shown
 
         def get_angle(self, surface, target):
@@ -339,10 +342,6 @@ class CreatorInterface(Interface):
 
 
 
-
-
-
-
 class ListenerInterface(Interface):
 
     DEFAULT_DIMS = (1080, 1920)
@@ -366,7 +365,7 @@ class ListenerInterface(Interface):
             open_file_button=self.Button(pygame.image.load('../dependencies/images/1open_file.png'),
                                          [0.18, 0.93]),
             reset_headtracking_button=self.Button(pygame.image.load('../dependencies/images/1reset_headtracking.png'),
-                                         [0.45, 0.93]),
+                                                  [0.45, 0.93]),
 
         ),
 
@@ -412,7 +411,7 @@ class ListenerInterface(Interface):
             mouse_inside = distance_to_mouse[0] < self.slider.size[0]/2 and distance_to_mouse[1] < self.slider.size[1]/2 and mouse_data["pressed"]
 
             self.playing_progress = interp1d([25, 455], [0, 100])
-            #print(self.playing_progress(self.slider_position))
+            # print(self.playing_progress(self.slider_position))
 
             if mouse_inside:
                 self.slider_position = mouse_data["pos"][0]
@@ -427,6 +426,7 @@ class ListenerInterface(Interface):
 
             if self.playback_state["started"]:
                 self.playback_state["in_process"] = True
+                self.playback_state["stopped"] = False
                 self.buttons["play_button"].replace(self.buttons["pause_button"])
 
             elif self.playback_state["paused"]:
@@ -452,4 +452,3 @@ class ListenerInterface(Interface):
         self.player_controller.display(self.screen)
 
         pygame.display.update()
-

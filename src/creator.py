@@ -59,15 +59,15 @@ while interface.running:
         # ---------------------------------------- HANDLE CSV FILE -------------------------------------------------
 
         # Wasn't sure which block of code for this csv to choose when merging, deal with this information accordingly
-        # csv_file_name = file_names.get_csv_file_path()
-        # wav_file_name = file_names.get_wav_file_path()
-        # if os.path.isfile(csv_file_name):
-        #     file_names.increase_number_of_recordings_created()
-        #     sf.write(wav_file_name, recording.get_data(), audio_io.sampling_freq)
-        #     pd.DataFrame(positional_data).to_csv(csv_file_name, header=None, index=None)
-        # else:
-        #     pd.DataFrame(positional_data).to_csv(csv_file_name, header=None, index=None)
-        #     sf.write(wav_file_name, recording.get_data(), audio_io.sampling_freq)
+        csv_file_name = file_names.get_csv_file_path()
+        wav_file_name = file_names.get_wav_file_path()
+        if os.path.isfile(csv_file_name):
+            file_names.increase_number_of_recordings_created()
+            sf.write(wav_file_name, recording.get_data(), audio_io.sampling_freq)
+            pd.DataFrame(positional_data).to_csv(csv_file_name, header=None, index=None)
+        else:
+            pd.DataFrame(positional_data).to_csv(csv_file_name, header=None, index=None)
+            sf.write(wav_file_name, recording.get_data(), audio_io.sampling_freq)
 
 
         # csv_file_name = "../dependencies/csv_data/positional_data" + str(number_of_recordings_done) + ".csv"
@@ -78,4 +78,3 @@ while interface.running:
         # csv_loaded = np.array(csv_loaded)
         # print("csv shape: ", csv_loaded.shape)
         #
-

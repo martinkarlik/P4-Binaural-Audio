@@ -12,7 +12,6 @@ def increase_number_of_recordings_created():
     number_of_recordings_done += 1
 
 
-
 def get_wav_file_path():
     global number_of_recordings_done
     return "../dependencies/wav_data/recording_data" + str(number_of_recordings_done) + ".wav"
