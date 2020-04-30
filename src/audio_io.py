@@ -94,8 +94,8 @@ class PlaybackThread(AudioIOThread):
 
         # Find position that corresponds to the middle of the chunk!
 
-        start_index = self.counter * frames
-        end_index = (self.counter + 1) * frames
+        start_index = self.chunk_index * frames
+        end_index = (self.chunk_index + 1) * frames
         print("len pos: ", len(self.positional_data))
         if len(self.positional_data) > 1:
             if not float(self.positional_data[0, 1]) == 0.0:
