@@ -17,9 +17,6 @@ class Interface:
 
         def __init__(self, pos, shown=True):
             self.pos = pos
-            self.size = (
-            image.get_rect().width * self.initial_scale_value, image.get_rect().height * self.initial_scale_value)
-            self.radius = self.size[0] / 2
             self.shown = shown
 
         def get_angle(self, surface, target):

@@ -46,16 +46,11 @@ while interface.running:
         if len(audio_data) > 0:
             positional_data, reverb_data = audio_processing.preprocess_data(recording.get_data(), np.array(audio_data))
 
-        print(positional_data)
 
-        print("rec shape", recording.get_data().shape)
-
-        output = audio_processing.apply_binaural_filtering(recording.get_data(), positional_data)
-
-        print("output shape", output.shape)
-        sd.play(output)
-        sd.wait()
-        break
+        # output = audio_processing.apply_binaural_filtering(recording.get_data(), positional_data)
+        #
+        # sd.play(output)
+        # sd.wait()
         # ---------------------------------------- HANDLE CSV FILE -------------------------------------------------
 
         # Wasn't sure which block of code for this csv to choose when merging, deal with this information accordingly

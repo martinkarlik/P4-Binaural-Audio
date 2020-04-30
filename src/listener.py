@@ -7,6 +7,7 @@ from tkinter import messagebox
 import tkinter
 import tkinter.filedialog as fd
 import os
+from src import audio_processing
 
 interface = interface.ListenerInterface()
 
@@ -34,8 +35,8 @@ while interface.running:
             # audio_to_play, _ = sf.read(tempdir)
 
             audio_to_play, _ = sf.read(file_names.get_wav_file_path())
-            audio_to_play = np.reshape(audio_to_play, (-1, 2))
-            print(audio_to_play.shape)
+            # audio_to_play = np.reshape(audio_to_play, (-1, 2)).transpose()
+            # print(audio_to_play.shape)
         except FileNotFoundError:
             print("No you fool, you gotta create something first. LET'S GET CREATIVE")
             # hide main window
@@ -47,8 +48,16 @@ while interface.running:
     if interface.player_controller.playback_state["started"]:
         playback = audio_io.PlaybackThread()
         # TODO get mic data and positional data to work with playback
-        playback.set_data(audio_to_play, csv_loaded, creator=False)
-        playback.start()
+
+        positional_data = np.zeros(csv_loaded.shape)
+        positional_data[:, 0] = csv_loaded[:, 0].astype(int)
+        positional_data[:, 1] = csv_loaded[:, 1].astype(float)
+        positional_data[:, 2] = csv_loaded[:, 2].astype(int)
+
+        # playback.set_data(audio_to_play, positional_data, creator=False)
+        # playback.start()
+        audio_processing.apply_binaural_filtering(audio_to_play, positional_data)
+
 
     elif interface.player_controller.playback_state["in_process"]:
 

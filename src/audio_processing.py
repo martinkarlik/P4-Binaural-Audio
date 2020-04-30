@@ -80,7 +80,6 @@ def apply_binaural_filtering(input_signal, positional_data):
 
     hrtf_database = {0.2: sofa_0_5, 0.4: sofa_1, 0.8: sofa_2, 1.2: sofa_3}
 
-
     input_signal_right_transposed = np.reshape(input_signal[:, 0], (-1, 1)).transpose()
     input_signal_left_transposed = np.reshape(input_signal[:, 1], (-1, 1)).transpose()
 
@@ -98,9 +97,10 @@ def apply_binaural_filtering(input_signal, positional_data):
     filter_state_left = 0
 
     for position in positional_data:
+        print(position)
         angle = position[0]
         radius = position[1]
-        duration = position[2]
+        duration = int(position[2])
 
         start_index = elapsed_duration
         elapsed_duration += duration
@@ -126,6 +126,9 @@ def apply_binaural_filtering(input_signal, positional_data):
             # Convolve the IRs with the input and put it into output
 
     output = np.append(output_ear_right.transpose(), output_ear_left.transpose(), axis=1)
+    print("playing non real time output")
+    sd.play(output)
+    sd.wait()
     return output
 
 

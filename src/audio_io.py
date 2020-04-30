@@ -22,9 +22,6 @@ class AudioIOThread(threading.Thread):
         self.chunk_length = 0.05
         self.chunk_samples = int(self.sampling_freq * self.chunk_length)
 
-        # sd.default.samplerate = self.sampling_freq
-        # sd.default.channels = (1, 2)
-
 
 class RecordingThread(AudioIOThread):
 
@@ -57,16 +54,12 @@ class PlaybackThread(AudioIOThread):
 
     def __init__(self):
         super().__init__()
-        self.play_data = np.array([[]])
-        self.positional_data = np.array([[]])
-        self.output_ear1 = np.array([[]])
-        self.output_ear2 = np.array([[]])
+        self.play_data = np.array([])
+        self.positional_data = np.array([])
 
-        self.positional_data = [[10, 20, 7000], [10, 20, 8000], [10, 20, 10000], [10, 20, 5000]]
-
-        self.filter_state1 = 0
-        self.filter_state2 = 0
-        self.done = False
+        self.filter_state_right = np.zeros(2047)
+        self.filter_state_left = np.zeros(2047)
+        self.filter_state_unknown = True
 
         self.chunk_index = 0
 
@@ -76,78 +69,61 @@ class PlaybackThread(AudioIOThread):
         sofa_3 = sofa.Database.open('../dependencies/impulse_responses/QU_KEMAR_anechoic_3m.sofa')
 
         self.hrtf_database = {0.2: sofa_0_5, 0.4: sofa_1, 0.8: sofa_2, 1.2: sofa_3}
-        self.filter_state_left = None
-        self.filter_state_right = None
 
         self.play_stream = sd.OutputStream(samplerate=self.sampling_freq, channels=2, blocksize=self.chunk_samples,
                                            callback=self.callback)
+        self.done = False
 
     def run(self):
         self.play_stream.start()
 
     def callback(self, outdata, frames, time, status):
 
-        play_data_transposed = self.play_data.transpose()
-        # print("play_data_transposed: ", play_data_transposed.shape)
+        corresponding_sample = self.chunk_index * frames + frames / 2
 
-        # self.chunk_index * frames
+        elapsed_samples = self.positional_data[0][2]
+        pos_index = 0
+        while elapsed_samples < corresponding_sample:
+            pos_index += 1
+            elapsed_samples += self.positional_data[pos_index][2]
 
-        # Find position that corresponds to the middle of the chunk!
+        angle = self.positional_data[pos_index][0]
+        radius = self.positional_data[pos_index][1]
 
-        start_index = self.counter * frames
-        end_index = (self.counter + 1) * frames
-        if len(self.positional_data) > 0:
-            if not float(self.positional_data[0, 1]) == 0.0:
+        start_index = self.chunk_index * frames
+        end_index = (self.chunk_index + 1) * frames
 
-                ir_ear_right = self.hrtf_database[float(self.positional_data[0, 1])].Data.IR.get_values(
-                    indices={"M": int(self.positional_data[0, 0]), "R": 0, "E": 0})
-                ir_ear_left = self.hrtf_database[float(self.positional_data[0, 1])].Data.IR.get_values(
-                    indices={"M": int(self.positional_data[0, 0]), "R": 1, "E": 0})
-
-                if self.filter_state_left is None and self.filter_state_right is None:
-                    self.filter_state_left = np.zeros([len(ir_ear_left) - 1])
-                    self.filter_state_right = np.zeros([len(ir_ear_left) - 1])
-
-                outdata[:, 0], self.filter_state_left = \
-                    lfilter(ir_ear_left, 1, play_data_transposed[0, start_index:end_index], zi=self.filter_state_left)
-                outdata[:, 1], self.filter_state_right = \
-                    lfilter(ir_ear_right, 1, play_data_transposed[1, start_index:end_index], zi=self.filter_state_right)
-
-            else:
-                outdata[:, 0] = play_data_transposed[0, start_index:end_index]
-                outdata[:, 1] = play_data_transposed[1, start_index:end_index]
+        if angle == -1:  # don't apply any filters, output should stay stereo
+            outdata[:, 0] = self.play_data[0, start_index:end_index]
+            outdata[:, 1] = self.play_data[1, start_index:end_index]
+            self.filter_state_unknown = True
         else:
-            outdata[:, 0] = play_data_transposed[0, start_index:end_index]
-            outdata[:, 1] = play_data_transposed[1, start_index:end_index]
+            ir_ear_right = self.hrtf_database[radius].Data.IR.get_values(indices={"M": angle, "R": 0, "E": 0})
+            ir_ear_left = self.hrtf_database[radius].Data.IR.get_values(indices={"M": angle, "R": 1, "E": 0})
 
-        outdata[:, 0] = play_data_transposed[0, start_index:end_index]
-        outdata[:, 1] = play_data_transposed[1, start_index:end_index]
+            if self.filter_state_unknown:
+                self.filter_state_right = np.zeros(2047)
+                self.filter_state_left = np.zeros(2047)
+                self.filter_state_unknown = False
+
+            outdata[:, 0], self.filter_state_right = \
+                lfilter(ir_ear_right, 1, self.play_data[0, start_index:end_index], zi=self.filter_state_right)
+            outdata[:, 1], self.filter_state_left = \
+                lfilter(ir_ear_left, 1, self.play_data[1, start_index:end_index], zi=self.filter_state_left)
+
+        # outdata[:, 0] = self.play_data[0, start_index:end_index]
+        # outdata[:, 1] = self.play_data[1, start_index:end_index]
 
         self.chunk_index += 1
 
         if self.chunk_index + 1 == len(self.play_data) / frames:
-            self.done = True
             self.play_stream.stop()
+            self.done = True
             print("stopped")
 
-    def set_data(self, audio_data, positional_data=None, creator=True):
-        self.play_data = audio_data
+    def set_data(self, play_data, positional_data=None, creator=True):
+
+        self.play_data = play_data
+
         if not creator:
             self.positional_data = positional_data
-
-#
-# print("start")
-# recording = RecordingThread()
-# recording.start()
-#
-# input()
-# print("stop")
-# recording.stop()
-# playback = PlaybackThread()
-# playback.set_data(recording.get_data())
-#
-# print("play")
-# input()
-# playback.start()
-#
-# input()
