@@ -24,7 +24,8 @@ class Interface:
         def __init__(self, image, pos, shown=True):
             self.image = image
             self.pos = pos
-            self.size = (image.get_rect().width * self.initial_scale_value, image.get_rect().height * self.initial_scale_value)
+            self.size = (
+            image.get_rect().width * self.initial_scale_value, image.get_rect().height * self.initial_scale_value)
             self.radius = self.size[0] / 2
             self.shown = shown
 
@@ -52,6 +53,7 @@ class Interface:
             distance_x = abs(abs_pos[0] - target[0])
             distance_y = abs(abs_pos[1] - target[1])
             return distance_x, distance_y
+
         #
         # def map_pos(self, values, target_values):
         #     mapped = interp1d([values], [target_values])
@@ -123,7 +125,7 @@ class CreatorInterface(Interface):
                                          [0.804, 0.183]),
             rec_stop_button=self.Button(pygame.image.load('../dependencies/images/record_stop_button.png'),
                                         [0.804, 0.183], False)
-            )
+        )
         )
 
         self.audio_controller = self.AudioController(
@@ -206,7 +208,8 @@ class CreatorInterface(Interface):
 
             if playback_state["in_process"]:
 
-                if abs(self.current_audio_data["angle"] - self.previous_audio_data["angle"]) > self.NEW_ANGLE_THRESHOLD or \
+                if abs(self.current_audio_data["angle"] - self.previous_audio_data[
+                    "angle"]) > self.NEW_ANGLE_THRESHOLD or \
                         self.current_audio_data["radius"] != self.previous_audio_data["radius"] or \
                         self.current_audio_data["reverb"] != self.previous_audio_data["reverb"]:
                     self.full_audio_data.append((self.previous_audio_data, playback_state["timer"].get_time()))
@@ -216,7 +219,7 @@ class CreatorInterface(Interface):
 
             elif playback_state["stopped"]:
                 self.full_audio_data.append([self.current_audio_data, playback_state["timer"].get_time()])
-                #print(playback_state["timer"].get_time())
+                # print(playback_state["timer"].get_time())
 
     class AudioManager:
 
@@ -287,7 +290,6 @@ class CreatorInterface(Interface):
             elif self.buttons["rec_stop_button"].clicked:
                 self.buttons["rec_stop_button"].replace(self.buttons["rec_start_button"])
 
-
     def update(self):
         mouse_data = dict(pos=pygame.mouse.get_pos(), pressed=pygame.mouse.get_pressed()[0], clicked=False)
 
@@ -317,19 +319,6 @@ class CreatorInterface(Interface):
         pygame.display.update()
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
 class ListenerInterface(Interface):
     screen_size = (480, 852)
 
@@ -353,8 +342,7 @@ class ListenerInterface(Interface):
             open_file_button=self.Button(pygame.image.load('../dependencies/images/1open_file.png'),
                                          [0.18, 0.93]),
             reset_headtracking_button=self.Button(pygame.image.load('../dependencies/images/1reset_headtracking.png'),
-                                         [0.45, 0.93]),
-
+                                                  [0.45, 0.93]),
 
         ),
 
@@ -376,7 +364,6 @@ class ListenerInterface(Interface):
             self.slider_position = 25
             self.playing_progress = 1
 
-
             self.paused_state = dict(started=False)
             self.playback_state = dict(started=False, stopped=False, in_process=False, paused=False)
 
@@ -386,7 +373,6 @@ class ListenerInterface(Interface):
             self.head.display(surface)
             self.slider.display(surface)
             self.pulse.display(surface)
-
 
             selection_pos = (self.slider_position, self.slider.get_abs_pos(surface)[1])
             pygame.draw.circle(surface, (255, 255, 255), selection_pos, 20)
@@ -400,10 +386,11 @@ class ListenerInterface(Interface):
             distance_to_mouse_x = self.slider.get_manhatan_distance(surface, mouse_data["pos"])[0]
             distance_to_mouse_y = self.slider.get_manhatan_distance(surface, mouse_data["pos"])[1]
 
-            mouse_inside = distance_to_mouse_x < self.slider.size[0]/2 and distance_to_mouse_y < self.slider.size[1]/2 and mouse_data["pressed"]
+            mouse_inside = distance_to_mouse_x < self.slider.size[0] / 2 and distance_to_mouse_y < self.slider.size[
+                1] / 2 and mouse_data["pressed"]
 
             self.playing_progress = interp1d([25, 455], [0, 100])
-            #print(self.playing_progress(self.slider_position))
+            # print(self.playing_progress(self.slider_position))
 
             if mouse_inside:
                 self.slider_position = mouse_data["pos"][0]
@@ -418,6 +405,7 @@ class ListenerInterface(Interface):
 
             if self.playback_state["started"]:
                 self.playback_state["in_process"] = True
+                self.playback_state["stopped"] = False
                 self.buttons["play_button"].replace(self.buttons["pause_button"])
 
             elif self.playback_state["paused"]:
@@ -428,7 +416,6 @@ class ListenerInterface(Interface):
             elif self.playback_state["stopped"]:
                 self.playback_state["in_process"] = False
                 self.buttons["pause_button"].replace(self.buttons["play_button"])
-
 
     def update(self):
         mouse_data = dict(pos=pygame.mouse.get_pos(), pressed=pygame.mouse.get_pressed()[0], clicked=False)
@@ -444,5 +431,3 @@ class ListenerInterface(Interface):
         self.player_controller.display(self.screen)
 
         pygame.display.update()
-
-
