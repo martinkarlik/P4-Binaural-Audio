@@ -47,10 +47,14 @@ while interface.running:
             positional_data, reverb_data = audio_processing.preprocess_data(recording.get_data(), np.array(audio_data))
 
 
-        # output = audio_processing.apply_binaural_filtering(recording.get_data(), positional_data)
-        #
-        # sd.play(output)
-        # sd.wait()
+        print("rec shape", recording.get_data().shape)
+
+        output = audio_processing.apply_binaural_filtering(recording.get_data(), positional_data)
+
+        print("output shape", output.shape)
+        sd.play(output)
+        sd.wait()
+
         # ---------------------------------------- HANDLE CSV FILE -------------------------------------------------
 
         # Wasn't sure which block of code for this csv to choose when merging, deal with this information accordingly
@@ -63,7 +67,7 @@ while interface.running:
         else:
             pd.DataFrame(positional_data).to_csv(csv_file_name, header=None, index=None)
             sf.write(wav_file_name, recording.get_data(), audio_io.sampling_freq)
-
+        break
 
         # csv_file_name = "../dependencies/csv_data/positional_data" + str(number_of_recordings_done) + ".csv"
         # if not os.path.isfile(csv_file_name):

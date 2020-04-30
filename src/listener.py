@@ -23,7 +23,9 @@ while interface.running:
         try:
             csv_loaded = list(csv.reader(open(file_names.get_csv_file_path())))
             csv_loaded = np.array(csv_loaded)
-            print(csv_loaded[0, 0])
+            print(csv_loaded)
+            print(csv_loaded[0, 2])
+            print(csv_loaded[0][2])
             # for i in csv_loaded:
             #     print(i)
 
@@ -46,21 +48,25 @@ while interface.running:
             messagebox.showinfo("ERROR", "Error, no files found")
 
     if interface.player_controller.playback_state["started"]:
-        playback = audio_io.PlaybackThread()
-        # TODO get mic data and positional data to work with playback
+        if audio_to_play is not None:
+            playback = audio_io.PlaybackThread()
+            
+            positional_data = np.zeros(csv_loaded.shape)
+            positional_data[:, 0] = csv_loaded[:, 0].astype(int)
+            positional_data[:, 1] = csv_loaded[:, 1].astype(float)
+            positional_data[:, 2] = csv_loaded[:, 2].astype(int)
 
-        positional_data = np.zeros(csv_loaded.shape)
-        positional_data[:, 0] = csv_loaded[:, 0].astype(int)
-        positional_data[:, 1] = csv_loaded[:, 1].astype(float)
-        positional_data[:, 2] = csv_loaded[:, 2].astype(int)
-
-        # playback.set_data(audio_to_play, positional_data, creator=False)
-        # playback.start()
-        audio_processing.apply_binaural_filtering(audio_to_play, positional_data)
-
+            # playback.set_data(audio_to_play, positional_data, creator=False)
+            # playback.start()
+            audio_processing.apply_binaural_filtering(audio_to_play, positional_data)
+            # TODO get mic data and positional data to work with playback
+            playback.set_data(audio_to_play, csv_loaded, creator=False)
+            playback.start()
+        else:
+            print("No file found and you can't play nothing, idiot")
 
     elif interface.player_controller.playback_state["in_process"]:
-
-        if playback.done:
-            interface.player_controller.playback_state["stopped"] = True
-            playback.done = False
+        if audio_to_play is not None:
+            if playback.done:
+                interface.player_controller.playback_state["stopped"] = True
+                playback.done = False
