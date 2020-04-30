@@ -88,7 +88,8 @@ class PlaybackThread(AudioIOThread):
 
         start_index = self.counter * frames
         end_index = (self.counter + 1) * frames
-        if len(self.positional_data) > 0:
+        print("len pos: ", len(self.positional_data))
+        if len(self.positional_data) > 1:
             if not float(self.positional_data[0, 1]) == 0.0:
 
                 ir_ear_right = self.hrtf_database[float(self.positional_data[0, 1])].Data.IR.get_values(
@@ -111,9 +112,6 @@ class PlaybackThread(AudioIOThread):
         else:
             outdata[:, 0] = play_data_transposed[0, start_index:end_index]
             outdata[:, 1] = play_data_transposed[1, start_index:end_index]
-
-        outdata[:, 0] = play_data_transposed[0, start_index:end_index]
-        outdata[:, 1] = play_data_transposed[1, start_index:end_index]
 
         self.counter += 1
 

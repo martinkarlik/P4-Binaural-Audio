@@ -12,7 +12,7 @@ class Interface:
 
     def __init__(self):
         pygame.init()
-        self.screen = pygame.display.set_mode((1280, 720), 1, 16)
+        self.screen = pygame.display.set_mode((1920, 1080), 1, 16)
         self.screen_ratio_to_default = self.screen.get_width() / self.DEFAULT_DIMS[0]
 
         self.Widget.initial_scale_value = self.screen_ratio_to_default
@@ -23,9 +23,6 @@ class Interface:
 
         def __init__(self, pos, shown=True):
             self.pos = pos
-            self.size = (
-            image.get_rect().width * self.initial_scale_value, image.get_rect().height * self.initial_scale_value)
-            self.radius = self.size[0] / 2
             self.shown = shown
 
         def get_angle(self, surface, target):
@@ -99,7 +96,7 @@ class Interface:
             self.text = "00:00"
 
         def display(self, surface, rotate_value=0, scale_value=1):
-            text = self.font.render(self.text, False, (0, 0, 0))
+            text = self.font.render(self.text, True, (57,176,141))
             text_rect = text.get_rect(center=self.get_abs_pos(surface))
             surface.blit(text, text_rect)
 
@@ -113,25 +110,27 @@ class CreatorInterface(Interface):
 
         self.audio_manager = self.AudioManager(
             dict(
-            play_button=self.Button(pygame.image.load('../dependencies/images/play_button.png'), [0.804, 0.524]),
-            pause_button=self.Button(pygame.image.load('../dependencies/images/pause_button.png'), [0.804, 0.524],
-                                     False),
-            save_button=self.Button(pygame.image.load('../dependencies/images/save_button.png'), [0.903, 0.524]),
-            discard_button=self.Button(pygame.image.load('../dependencies/images/discard_button.png'), [0.703, 0.524]),
-            rec_start_button=self.Button(pygame.image.load('../dependencies/images/record_start_button.png'),
-                                         [0.804, 0.183]),
-            rec_stop_button=self.Button(pygame.image.load('../dependencies/images/record_stop_button.png'),
-                                        [0.804, 0.183], False)
+                play_button=self.Button(pygame.image.load('../dependencies/images/play_button.png'), [0.872, 0.290]),
+                pause_button=self.Button(pygame.image.load('../dependencies/images/pause_button.png'), [0.872, 0.290],
+                                         False),
+                save_button=self.Button(pygame.image.load('../dependencies/images/save_button.png'), [0.870, 0.555]),
+                discard_button=self.Button(pygame.image.load('../dependencies/images/discard_button.png'),
+                                           [0.659, 0.555]),
+                rec_start_button=self.Button(pygame.image.load('../dependencies/images/record_start_button.png'),
+                                             [0.660, 0.290]),
+                rec_stop_button=self.Button(pygame.image.load('../dependencies/images/record_stop_button.png'),
+                                            [0.660, 0.290], False)
             ),
             dict(
-                rec_timer=self.TextField([0.804, 0.33], True),
-                play_timer=self.TextField([0.804, 0.65], True)
+                rec_timer=self.TextField([0.659, 0.457], True),
+                play_timer=self.TextField([0.870, 0.457], True)
             )
         )
 
         self.audio_controller = self.AudioController(
-            self.Button(pygame.image.load('../dependencies/images/head.png'), [0.269, 0.4]),
-            self.Button(pygame.image.load('../dependencies/images/circle.png'), [0.269, 0.4]),
+            self.Button(pygame.image.load('../dependencies/images/head.png'), [0.269, 0.39]),
+            self.Button(pygame.image.load('../dependencies/images/arrow.png'), [0.269, 0.308]),
+            self.Button(pygame.image.load('../dependencies/images/circle.png'), [0.2685, 0.389]),
             self.Button(pygame.image.load('../dependencies/images/jakub.png'), [0.269, 0.4]),
             dict(
                 anechoic=self.Button(pygame.image.load('../dependencies/images/anechoic.png'), [0.146, 0.911]),
@@ -143,8 +142,9 @@ class CreatorInterface(Interface):
 
     class AudioController:
 
-        def __init__(self, head, circle, selection, reverb_buttons):
+        def __init__(self, head, arrow, circle, selection, reverb_buttons):
             self.head = head
+            self.arrow = arrow
             self.circle = circle
             self.selection = selection
             self.reverb_buttons = reverb_buttons
@@ -158,6 +158,7 @@ class CreatorInterface(Interface):
 
         def display(self, surface):
             self.head.display(surface)
+            self.arrow.display(surface)
 
             for r in self.radii:
                 self.circle.display(surface, 0, r)
@@ -166,7 +167,7 @@ class CreatorInterface(Interface):
                 selection_pos = self.head.get_moved_by_polar(surface, (
                     self.current_audio_data["radius"] * self.circle.radius, self.current_audio_data["angle"]))
 
-                pygame.draw.circle(surface, (255, 255, 255), selection_pos, 20)
+                pygame.draw.circle(surface, (253, 92, 92), selection_pos, 20)
                 # self.selection.display(surface, 0, 0.3)
 
             for button in self.reverb_buttons.values():
@@ -213,7 +214,8 @@ class CreatorInterface(Interface):
                         self.current_audio_data["reverb"] != self.previous_audio_data["reverb"]:
 
                     if len(self.full_audio_data) > 0:
-                        position_time = playback_state["timer"].get_time() - np.sum(np.array(self.full_audio_data)[:, 1])
+                        position_time = playback_state["timer"].get_time() - np.sum(
+                            np.array(self.full_audio_data)[:, 1])
                         self.full_audio_data.append((self.previous_audio_data, position_time))
                     else:
                         position_time = playback_state["timer"].get_time()
@@ -312,11 +314,8 @@ class CreatorInterface(Interface):
             rec_time = int(self.recording_state["timer"].get_time())
             play_time = int(self.playback_state["timer"].get_time())
 
-            self.text_fields["rec_timer"].text = f"0{rec_time // 60 }:0{rec_time % 60}"
-            self.text_fields["play_timer"].text = f"0{play_time // 60 }:0{play_time % 60}"
-
-
-
+            self.text_fields["rec_timer"].text = f"0{rec_time // 60}:0{rec_time % 60}"
+            self.text_fields["play_timer"].text = f"0{play_time // 60}:0{play_time % 60}"
 
     def update(self):
         mouse_data = dict(pos=pygame.mouse.get_pos(), pressed=pygame.mouse.get_pressed()[0], clicked=False)
@@ -335,13 +334,12 @@ class CreatorInterface(Interface):
         self.audio_controller.check_events(self.screen, mouse_data, self.audio_manager.playback_state)
 
         # display all the visuals
-        self.screen.fill((20, 40, 80))
+        self.screen.fill((40,45,46))
 
         self.audio_manager.display(self.screen)
         self.audio_controller.display(self.screen)
 
         pygame.display.update()
-
 
 
 class ListenerInterface(Interface):
@@ -390,7 +388,7 @@ class ListenerInterface(Interface):
             self.playing_progress = 1
 
             # self.paused_state = dict(started=False)
-            self.playing_state = dict(started=False,  paused=False)
+            self.playback_state = dict(started=False, stopped=False, in_process=False, paused=False)
 
         def display(self, surface):
 
@@ -400,7 +398,7 @@ class ListenerInterface(Interface):
             self.pulse.display(surface)
 
             selection_pos = (self.slider_position, self.slider.get_abs_pos(surface)[1])
-            pygame.draw.circle(surface, (255, 255, 255), selection_pos, 20)
+            pygame.draw.circle(surface, (253, 92, 92), selection_pos, 20)
 
             for button in self.buttons.values():
                 if button.shown:
@@ -410,7 +408,8 @@ class ListenerInterface(Interface):
 
             distance_to_mouse = self.slider.get_manhattan_distance(surface, mouse_data["pos"])
 
-            mouse_inside = distance_to_mouse[0] < self.slider.size[0]/2 and distance_to_mouse[1] < self.slider.size[1]/2 and mouse_data["pressed"]
+            mouse_inside = distance_to_mouse[0] < self.slider.size[0] / 2 and distance_to_mouse[1] < self.slider.size[
+                1] / 2 and mouse_data["pressed"]
 
             self.playing_progress = interp1d([25, 455], [0, 100])
             # print(self.playing_progress(self.slider_position))

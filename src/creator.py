@@ -55,7 +55,7 @@ while interface.running:
         print("output shape", output.shape)
         sd.play(output)
         sd.wait()
-        break
+
         # ---------------------------------------- HANDLE CSV FILE -------------------------------------------------
 
         # Wasn't sure which block of code for this csv to choose when merging, deal with this information accordingly
@@ -68,7 +68,7 @@ while interface.running:
         else:
             pd.DataFrame(positional_data).to_csv(csv_file_name, header=None, index=None)
             sf.write(wav_file_name, recording.get_data(), audio_io.sampling_freq)
-
+        break
 
         # csv_file_name = "../dependencies/csv_data/positional_data" + str(number_of_recordings_done) + ".csv"
         # if not os.path.isfile(csv_file_name):
