@@ -1,8 +1,8 @@
-import sofa
 import numpy as np
 import sounddevice as sd
 import pandas as pd
 import os.path
+import csv
 import soundfile as sf
 
 from src import interface
@@ -13,6 +13,7 @@ from src import file_names
 interface = interface.CreatorInterface()
 recording = None
 playback = None
+number_of_recordings_done = 0
 
 
 while interface.running:
@@ -21,9 +22,6 @@ while interface.running:
     if interface.audio_manager.recording_state["started"]:
         recording = audio_io.RecordingThread()
         recording.start()
-
-    if interface.audio_manager.recording_state["in_process"]:
-        pass
 
     elif interface.audio_manager.recording_state["stopped"]:
         recording.stop()
@@ -39,49 +37,44 @@ while interface.running:
             interface.audio_manager.playback_state["stopped"] = True
             playback.done = False
 
-            audio_data = interface.audio_controller.full_audio_data
-            # print(audio_data)
-            audio_data = np.array(audio_data)
-            # print(audio_data)
-            # print(audio_data.shape)
+    elif interface.audio_manager.playback_state["stopped"]:
 
-            total_frames = np.sum(audio_data[:, 1])
-            audio_data[:, 1] = np.divide(audio_data[:, 1], total_frames)
-            #print(audio_data)
+        audio_data = interface.audio_controller.full_audio_data
 
-            for sample in audio_data:
-                sample[1] = int(sample[1] * len(recording.get_data()))
+        positional_data = []
+        reverb_data = []
+        if len(audio_data) > 0:
+            positional_data, reverb_data = audio_processing.preprocess_data(recording.get_data(), np.array(audio_data))
 
-            audio_data[len(audio_data) - 1][1] += abs(len(recording.get_data()) - np.sum(audio_data[:, 1]))
+        print(positional_data)
 
-            positional_data, reverb_data = audio_processing.split_audio_data(audio_data)
+        print("rec shape", recording.get_data().shape)
 
-            # ------------------------------------ HANDLE CSV / WAV FILE -----------------------------------------------
+        output = audio_processing.apply_binaural_filtering(recording.get_data(), positional_data)
 
-            csv_file_name = file_names.get_csv_file_path()
-            wav_file_name = file_names.get_wav_file_path()
-            if os.path.isfile(csv_file_name) and os.path.isfile(csv_file_name):
-                file_names.increase_number_of_recordings_created()
-                sf.write(wav_file_name, recording.get_data(), audio_io.sampling_freq)
-                pd.DataFrame(positional_data).to_csv(csv_file_name, header=None, index=None)
-            else:
-                pd.DataFrame(positional_data).to_csv(csv_file_name, header=None, index=None)
-                sf.write(wav_file_name, recording.get_data(), audio_io.sampling_freq)
+        print("output shape", output.shape)
+        sd.play(output)
+        sd.wait()
+        break
+        # ---------------------------------------- HANDLE CSV FILE -------------------------------------------------
 
-            output = audio_processing.apply_binaural_filtering(recording.get_data(), positional_data)
-            sd.play(output)
-            sd.wait()
-
+        # Wasn't sure which block of code for this csv to choose when merging, deal with this information accordingly
+        csv_file_name = file_names.get_csv_file_path()
+        wav_file_name = file_names.get_wav_file_path()
+        if os.path.isfile(csv_file_name):
+            file_names.increase_number_of_recordings_created()
+            sf.write(wav_file_name, recording.get_data(), audio_io.sampling_freq)
+            pd.DataFrame(positional_data).to_csv(csv_file_name, header=None, index=None)
+        else:
+            pd.DataFrame(positional_data).to_csv(csv_file_name, header=None, index=None)
+            sf.write(wav_file_name, recording.get_data(), audio_io.sampling_freq)
 
 
-
-
-        # sd.play(output)
-        # sd.wait()
-
-        # tmp_reverb_signal = audio_processing.add_reverb(rec_data, recording.sampling_freq, interface.audio_controller.current_audio_data)
-    # if interface.audio_manager.playback_started:
-    #     recording.play()
-
-# TODO Listener Interface
-# TODO Continues recording of flexible length (stopped when told to do so)
+        # csv_file_name = "../dependencies/csv_data/positional_data" + str(number_of_recordings_done) + ".csv"
+        # if not os.path.isfile(csv_file_name):
+        #     pd.DataFrame(positional_data).to_csv(csv_file_name, header=None, index=None)
+        #     number_of_recordings_done += 1
+        # csv_loaded = list(csv.reader(open(csv_file_name)))
+        # csv_loaded = np.array(csv_loaded)
+        # print("csv shape: ", csv_loaded.shape)
+        #
