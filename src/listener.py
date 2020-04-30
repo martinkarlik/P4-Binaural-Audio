@@ -7,7 +7,6 @@ from tkinter import messagebox
 import tkinter
 import tkinter.filedialog as fd
 import os
-from src.creator import recording
 
 interface = interface.ListenerInterface()
 

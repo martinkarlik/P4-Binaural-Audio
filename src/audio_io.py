@@ -61,10 +61,14 @@ class PlaybackThread(AudioIOThread):
         self.positional_data = np.array([[]])
         self.output_ear1 = np.array([[]])
         self.output_ear2 = np.array([[]])
+
+        self.positional_data = [[10, 20, 7000], [10, 20, 8000], [10, 20, 10000], [10, 20, 5000]]
+
         self.filter_state1 = 0
         self.filter_state2 = 0
         self.done = False
-        self.counter = 0
+
+        self.chunk_index = 0
 
         sofa_0_5 = sofa.Database.open('../dependencies/impulse_responses/QU_KEMAR_anechoic_0_5m.sofa')
         sofa_1 = sofa.Database.open('../dependencies/impulse_responses/QU_KEMAR_anechoic_1m.sofa')
@@ -85,6 +89,10 @@ class PlaybackThread(AudioIOThread):
 
         play_data_transposed = self.play_data.transpose()
         # print("play_data_transposed: ", play_data_transposed.shape)
+
+        # self.chunk_index * frames
+
+        # Find position that corresponds to the middle of the chunk!
 
         start_index = self.counter * frames
         end_index = (self.counter + 1) * frames
@@ -113,9 +121,12 @@ class PlaybackThread(AudioIOThread):
             outdata[:, 0] = play_data_transposed[0, start_index:end_index]
             outdata[:, 1] = play_data_transposed[1, start_index:end_index]
 
-        self.counter += 1
+        outdata[:, 0] = play_data_transposed[0, start_index:end_index]
+        outdata[:, 1] = play_data_transposed[1, start_index:end_index]
 
-        if self.counter + 1 == len(self.play_data) / frames:
+        self.chunk_index += 1
+
+        if self.chunk_index + 1 == len(self.play_data) / frames:
             self.done = True
             self.play_stream.stop()
             print("stopped")

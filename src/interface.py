@@ -7,8 +7,6 @@ from scipy.interpolate import interp1d
 
 class Interface:
     running = True
-    DEFAULT_DIMS = (1920, 1080)
-    LISTENER_DIMS = (1080, 1920)
 
     def __init__(self):
         pygame.init()
@@ -70,7 +68,7 @@ class Interface:
             self.shown, other.shown = False, True
 
     class Button(Widget):
-        def __init__(self, image, pos, shown=True, ):
+        def __init__(self, image, pos, shown=True):
             super().__init__(pos, shown)
             self.image = image
             self.size = (image.get_rect().width * self.initial_scale_value, image.get_rect().height * self.initial_scale_value)
@@ -104,9 +102,16 @@ class Interface:
 class CreatorInterface(Interface):
     new_angle_threshold = 10
 
+    DEFAULT_DIMS = (1920, 1080)
+
     def __init__(self):
         super().__init__()
         pygame.display.set_caption("3DAB CREATOR")
+
+        self.screen = pygame.display.set_mode((1280, 720), 1, 16)
+        self.screen_ratio_to_default = self.screen.get_width() / self.DEFAULT_DIMS[0]
+
+        self.Widget.initial_scale_value = self.screen_ratio_to_default
 
         self.audio_manager = self.AudioManager(
             dict(
@@ -314,8 +319,8 @@ class CreatorInterface(Interface):
             rec_time = int(self.recording_state["timer"].get_time())
             play_time = int(self.playback_state["timer"].get_time())
 
-            self.text_fields["rec_timer"].text = f"0{rec_time // 60}:0{rec_time % 60}"
-            self.text_fields["play_timer"].text = f"0{play_time // 60}:0{play_time % 60}"
+            self.text_fields["rec_timer"].text = f"0{rec_time // 60 }:0{rec_time % 60}"
+            self.text_fields["play_timer"].text = f"0{play_time // 60 }:0{play_time % 60}"
 
     def update(self):
         mouse_data = dict(pos=pygame.mouse.get_pos(), pressed=pygame.mouse.get_pressed()[0], clicked=False)
@@ -343,18 +348,18 @@ class CreatorInterface(Interface):
 
 
 class ListenerInterface(Interface):
-    screen_size = (480, 852)
+
+    DEFAULT_DIMS = (1080, 1920)
 
     def __init__(self):
         super().__init__()
         pygame.display.set_caption("3DAB LISTENER")
-
-        self.pulse_sound_location = (0.7, 0.4)
-
-        self.screen = pygame.display.set_mode(self.screen_size, 1, 16)
-        self.screen_ratio_to_default = self.screen.get_width() / self.LISTENER_DIMS[0]
+        self.screen = pygame.display.set_mode((480, 852), 1, 16)
+        self.screen_ratio_to_default = self.screen.get_width() / self.DEFAULT_DIMS[0]
 
         self.Widget.initial_scale_value = self.screen_ratio_to_default
+
+        self.pulse_sound_location = (0.7, 0.4)
 
         self.player_controller = self.PlayerController(dict(
             jump_forward=self.Button(pygame.image.load('../dependencies/images/1jump_forward.png'), [0.8, 0.67]),
@@ -388,7 +393,7 @@ class ListenerInterface(Interface):
             self.playing_progress = 1
 
             # self.paused_state = dict(started=False)
-            self.playback_state = dict(started=False, stopped=False, in_process=False, paused=False)
+            self.playback_state = dict(started=False,  stopped=False, in_process=False, paused=False)
 
         def display(self, surface):
 
