@@ -58,12 +58,17 @@ class PlaybackThread(AudioIOThread):
     def __init__(self):
         super().__init__()
         self.play_data = np.array([[]])
+
         self.output_ear1 = np.array([[]])
         self.output_ear2 = np.array([[]])
+
+        self.positional_data = [[10, 20, 7000], [10, 20, 8000], [10, 20, 10000], [10, 20, 5000]]
+
         self.filter_state1 = 0
         self.filter_state2 = 0
         self.done = False
-        self.counter = 0
+
+        self.chunk_index = 0
 
         sofa_0_5 = sofa.Database.open('../dependencies/impulse_responses/QU_KEMAR_anechoic_0_5m.sofa')
         sofa_1 = sofa.Database.open('../dependencies/impulse_responses/QU_KEMAR_anechoic_1m.sofa')
@@ -83,15 +88,22 @@ class PlaybackThread(AudioIOThread):
     def callback(self, outdata, frames, time, status):
 
         play_data_transposed = self.play_data.transpose()
-        #print("play_data_transposed: ", play_data_transposed.shape)
 
-        start_index = self.counter * frames
-        end_index = (self.counter + 1) * frames
+        pos_data = [2200, 7000, 4700]
+
+        0-1200, 1200-2400, 2400-3600
+
+        self.chunk_index * frames
+
+        # Find position that corresponds to the middle of the chunk!
+
+        start_index = self.chunk_index * frames
+        end_index = (self.chunk_index + 1) * frames
 
         ir_ear_right = self.hrtf_database[0.8].Data.IR.get_values(
-            indices={"M": (self.counter * 4) % 360, "R": 0, "E": 0})
+            indices={"M": self.chunk_index, "R": 0, "E": 0})
         ir_ear_left = self.hrtf_database[0.8].Data.IR.get_values(
-            indices={"M": (self.counter * 4) % 360, "R": 1, "E": 0})
+            indices={"M": (self.chunk_index * 4) % 360, "R": 1, "E": 0})
 
         if self.filter_state_left is None and self.filter_state_right is None:
             self.filter_state_left = np.zeros([len(ir_ear_left) - 1])
@@ -105,9 +117,9 @@ class PlaybackThread(AudioIOThread):
         outdata[:, 0] = play_data_transposed[0, start_index:end_index]
         outdata[:, 1] = play_data_transposed[1, start_index:end_index]
 
-        self.counter += 1
+        self.chunk_index += 1
 
-        if self.counter + 1 == len(self.play_data) / frames:
+        if self.chunk_index + 1 == len(self.play_data) / frames:
             self.done = True
             self.play_stream.stop()
             print("stopped")
