@@ -141,7 +141,7 @@ class CreatorInterface(Interface):
                 anechoic=self.Button(pygame.image.load('../dependencies/images/anechoic.png'), [0.146, 0.911]),
                 forest=self.Button(pygame.image.load('../dependencies/images/forest.png'), [0.229, 0.911]),
                 church=self.Button(pygame.image.load('../dependencies/images/church.png'), [0.312, 0.911]),
-                cave=self.Button(pygame.image.load('../dependencies/images/cave.png'), [0.397, 0.911])
+                cave=self.Button(pygame.image.load('../dependencies/images/cave.png'), [0.395, 0.911])
             )
         )
 
