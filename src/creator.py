@@ -46,7 +46,6 @@ while interface.running:
         if len(audio_data) > 0:
             positional_data, reverb_data = audio_processing.preprocess_data(recording.get_data(), np.array(audio_data))
 
-        print(positional_data)
 
         print("rec shape", recording.get_data().shape)
 
