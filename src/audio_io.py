@@ -102,6 +102,9 @@ class PlaybackThread(AudioIOThread):
         outdata[:, 1], self.filter_state_right = \
             lfilter(ir_ear_right, 1, play_data_transposed[1, start_index:end_index], zi=self.filter_state_right)
 
+        outdata[:, 0] = play_data_transposed[0, start_index:end_index]
+        outdata[:, 1] = play_data_transposed[1, start_index:end_index]
+
         self.counter += 1
 
         if self.counter + 1 == len(self.play_data) / frames:

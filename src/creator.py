@@ -2,6 +2,7 @@ import numpy as np
 import sounddevice as sd
 import pandas as pd
 import os.path
+import csv
 import soundfile as sf
 
 from src import interface
@@ -12,6 +13,7 @@ from src import file_names
 interface = interface.CreatorInterface()
 recording = None
 playback = None
+number_of_recordings_done = 0
 
 
 while interface.running:
@@ -45,9 +47,15 @@ while interface.running:
             positional_data, reverb_data = audio_processing.preprocess_data(recording.get_data(), np.array(audio_data))
 
         print(positional_data)
-        print(reverb_data)
-        break
 
+        print("rec shape", recording.get_data().shape)
+
+        output = audio_processing.apply_binaural_filtering(recording.get_data(), positional_data)
+
+        print("output shape", output.shape)
+        sd.play(output)
+        sd.wait()
+        break
         # ---------------------------------------- HANDLE CSV FILE -------------------------------------------------
 
         # Wasn't sure which block of code for this csv to choose when merging, deal with this information accordingly
@@ -62,14 +70,12 @@ while interface.running:
         #     sf.write(wav_file_name, recording.get_data(), audio_io.sampling_freq)
 
 
-        csv_file_name = "../dependencies/csv_data/positional_data" + str(number_of_recordings_done) + ".csv"
-        if not os.path.isfile(csv_file_name):
-            pd.DataFrame(positional_data).to_csv(csv_file_name, header=None, index=None)
-            number_of_recordings_done += 1
-        csv_loaded = list(csv.reader(open(csv_file_name)))
-        csv_loaded = np.array(csv_loaded)
-        print("csv shape: ", csv_loaded.shape)
+        # csv_file_name = "../dependencies/csv_data/positional_data" + str(number_of_recordings_done) + ".csv"
+        # if not os.path.isfile(csv_file_name):
+        #     pd.DataFrame(positional_data).to_csv(csv_file_name, header=None, index=None)
+        #     number_of_recordings_done += 1
+        # csv_loaded = list(csv.reader(open(csv_file_name)))
+        # csv_loaded = np.array(csv_loaded)
+        # print("csv shape: ", csv_loaded.shape)
+        #
 
-        output = audio_processing.apply_binaural_filtering(recording.get_data(), positional_data)
-        sd.play(output)
-        sd.wait()

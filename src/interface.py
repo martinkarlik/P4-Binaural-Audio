@@ -208,14 +208,27 @@ class CreatorInterface(Interface):
                 if self.current_audio_data["angle"] != self.previous_audio_data["angle"] or \
                         self.current_audio_data["radius"] != self.previous_audio_data["radius"] or \
                         self.current_audio_data["reverb"] != self.previous_audio_data["reverb"]:
-                    self.full_audio_data.append((self.previous_audio_data, playback_state["timer"].get_time()))
 
-                    print(playback_state["timer"].get_time())
+                    if len(self.full_audio_data) > 0:
+                        position_time = playback_state["timer"].get_time() - np.sum(np.array(self.full_audio_data)[:, 1])
+                        self.full_audio_data.append((self.previous_audio_data, position_time))
+                    else:
+                        position_time = playback_state["timer"].get_time()
+                        self.full_audio_data.append((self.previous_audio_data, position_time))
+
+                    print((self.previous_audio_data, position_time))
                     self.previous_audio_data = self.current_audio_data.copy()
 
             if playback_state["stopped"]:
-                self.full_audio_data.append((self.current_audio_data, playback_state["timer"].get_time()))
-                print(playback_state["timer"].get_time())
+
+                if len(self.full_audio_data) > 0:
+                    position_time = playback_state["timer"].get_time() - np.sum(np.array(self.full_audio_data)[:, 1])
+                    self.full_audio_data.append((self.previous_audio_data, position_time))
+                else:
+                    position_time = playback_state["timer"].get_time()
+                    self.full_audio_data.append((self.previous_audio_data, position_time))
+
+                print((self.previous_audio_data, position_time))
 
     class AudioManager:
 
@@ -273,21 +286,29 @@ class CreatorInterface(Interface):
                 self.buttons["pause_button"].replace(self.buttons["play_button"])
 
             elif self.playback_state["stopped"]:
-                self.playback_state["timer"].active = False
-                self.playback_state["timer"].join()
+                # self.playback_state["timer"].active = False
+                # self.playback_state["timer"].join()
                 self.playback_state["in_process"] = False
                 self.buttons["pause_button"].replace(self.buttons["play_button"])
 
             self.recording_state["started"] = self.buttons["rec_start_button"].clicked
             self.recording_state["stopped"] = self.buttons["rec_stop_button"].clicked
 
-            if self.buttons["rec_start_button"].clicked:
+            if self.recording_state["started"]:
+                self.recording_state["timer"] = self.Timer()
+                self.recording_state["timer"].start()
+                self.recording_state["in_process"] = True
                 self.buttons["rec_start_button"].replace(self.buttons["rec_stop_button"])
-            elif self.buttons["rec_stop_button"].clicked:
+
+            elif self.recording_state["stopped"]:
+                self.recording_state["timer"].active = False
+                self.recording_state["timer"].join()
+                self.recording_state["in_process"] = False
                 self.buttons["rec_stop_button"].replace(self.buttons["rec_start_button"])
 
             rec_time = int(self.recording_state["timer"].get_time())
             play_time = int(self.playback_state["timer"].get_time())
+
             self.text_fields["rec_timer"].text = f"0{rec_time // 60 }:0{rec_time % 60}"
             self.text_fields["play_timer"].text = f"0{play_time // 60 }:0{play_time % 60}"
 
@@ -308,11 +329,7 @@ class CreatorInterface(Interface):
                 mouse_data["clicked"] = True
 
         self.audio_manager.check_events(self.screen, mouse_data)
-
         self.audio_controller.check_events(self.screen, mouse_data, self.audio_manager.playback_state)
-        #
-        # if self.audio_manager.playback_state["in_process"]:
-        #     print(self.audio_manager.playback_state["timer"].get_time())
 
         # display all the visuals
         self.screen.fill((20, 40, 80))
