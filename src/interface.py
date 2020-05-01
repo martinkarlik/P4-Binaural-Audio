@@ -96,8 +96,6 @@ class Interface:
 
 
 class CreatorInterface(Interface):
-    new_angle_threshold = 10
-
     DEFAULT_DIMS = (1920, 1080)
 
     def __init__(self):
@@ -219,7 +217,6 @@ class CreatorInterface(Interface):
                         position_time = playback_state["timer"].get_time()
                         self.full_audio_data.append((self.previous_audio_data, position_time))
 
-                    print((self.previous_audio_data, position_time))
                     self.previous_audio_data = self.current_audio_data.copy()
 
             if playback_state["stopped"]:
@@ -231,7 +228,6 @@ class CreatorInterface(Interface):
                     position_time = playback_state["timer"].get_time()
                     self.full_audio_data.append((self.previous_audio_data, position_time))
 
-                print((self.previous_audio_data, position_time))
 
     class AudioManager:
 
@@ -341,7 +337,6 @@ class CreatorInterface(Interface):
 
 
 class ListenerInterface(Interface):
-
     DEFAULT_DIMS = (1080, 1920)
 
     def __init__(self):
