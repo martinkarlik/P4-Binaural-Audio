@@ -10,10 +10,6 @@ class Interface:
 
     def __init__(self):
         pygame.init()
-        self.screen = pygame.display.set_mode((1920, 1080), 1, 16)
-        self.screen_ratio_to_default = self.screen.get_width() / self.DEFAULT_DIMS[0]
-
-        self.Widget.initial_scale_value = self.screen_ratio_to_default
 
     class Widget:
 
@@ -134,22 +130,20 @@ class CreatorInterface(Interface):
 
         self.audio_controller = self.AudioController(
             self.Button(pygame.image.load('../dependencies/images/head.png'), [0.269, 0.39]),
-            self.Button(pygame.image.load('../dependencies/images/arrow.png'), [0.269, 0.308]),
             self.Button(pygame.image.load('../dependencies/images/circle.png'), [0.2685, 0.389]),
             self.Button(pygame.image.load('../dependencies/images/jakub.png'), [0.269, 0.4]),
             dict(
-                anechoic=self.Button(pygame.image.load('../dependencies/images/anechoic.png'), [0.146, 0.911]),
-                forest=self.Button(pygame.image.load('../dependencies/images/forest.png'), [0.229, 0.911]),
-                church=self.Button(pygame.image.load('../dependencies/images/church.png'), [0.312, 0.911]),
-                cave=self.Button(pygame.image.load('../dependencies/images/cave.png'), [0.395, 0.911])
+                anechoic=self.Button(pygame.image.load('../dependencies/images/anechoic.png'), [0.114, 0.870]),
+                forest=self.Button(pygame.image.load('../dependencies/images/forest.png'), [0.217, 0.870]),
+                church=self.Button(pygame.image.load('../dependencies/images/church.png'), [0.321, 0.870]),
+                cave=self.Button(pygame.image.load('../dependencies/images/cave.png'), [0.424, 0.870])
             )
         )
 
     class AudioController:
 
-        def __init__(self, head, arrow, circle, selection, reverb_buttons):
+        def __init__(self, head, circle, selection, reverb_buttons):
             self.head = head
-            self.arrow = arrow
             self.circle = circle
             self.selection = selection
             self.reverb_buttons = reverb_buttons
@@ -163,7 +157,6 @@ class CreatorInterface(Interface):
 
         def display(self, surface):
             self.head.display(surface)
-            self.arrow.display(surface)
 
             for r in self.radii:
                 self.circle.display(surface, 0, r)
