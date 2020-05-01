@@ -72,7 +72,6 @@ def add_reverb(input_signal, sampling_freq, reverb_type):
 
 def apply_binaural_filtering(input_signal, positional_data):
 
-
     sofa_0_5 = sofa.Database.open('../dependencies/impulse_responses/QU_KEMAR_anechoic_0_5m.sofa')
     sofa_1 = sofa.Database.open('../dependencies/impulse_responses/QU_KEMAR_anechoic_1m.sofa')
     sofa_2 = sofa.Database.open('../dependencies/impulse_responses/QU_KEMAR_anechoic_2m.sofa')
@@ -88,7 +87,6 @@ def apply_binaural_filtering(input_signal, positional_data):
     output_ear_right = np.zeros([1, total_samples])
     output_ear_left = np.zeros([1, total_samples])
 
-    print(input_signal_right_transposed.shape, output_ear_right.shape)
 
     elapsed_duration = 0
 
@@ -97,7 +95,6 @@ def apply_binaural_filtering(input_signal, positional_data):
     filter_state_left = 0
 
     for position in positional_data:
-        print(position)
         angle = position[0]
         radius = position[1]
         duration = int(position[2])
@@ -115,8 +112,8 @@ def apply_binaural_filtering(input_signal, positional_data):
             ir_ear_left = hrtf_database[radius].Data.IR.get_values(indices={"M": angle, "R": 1, "E": 0})
 
             if filter_state_unknown:
-                filter_state_right = np.zeros(len(ir_ear_right) - 1)
-                filter_state_left = np.zeros(len(ir_ear_left) - 1)
+                filter_state_right = lfilter_zi(ir_ear_right, 1)
+                filter_state_left = lfilter_zi(ir_ear_left, 1)
                 filter_state_unknown = False
 
             output_ear_right[0, start_index:end_index], filter_state_right = \

@@ -22,7 +22,6 @@ class AudioIOThread(threading.Thread):
         self.chunk_length = 0.05
         self.chunk_samples = int(self.sampling_freq * self.chunk_length)
 
-
 class RecordingThread(AudioIOThread):
 
     def __init__(self):
@@ -55,6 +54,22 @@ class PlaybackThread(AudioIOThread):
     def __init__(self):
         super().__init__()
         self.play_data = np.array([])
+        self.done = False
+
+    def run(self):
+        sd.play(self.play_data)
+        sd.wait()
+        self.done = True
+
+    def set_data(self, play_data):
+        self.play_data = play_data
+
+
+class DynamicPlaybackThread(PlaybackThread):
+
+    def __init__(self):
+        super().__init__()
+        self.play_data = np.array([])
         self.positional_data = np.array([])
 
         self.filter_state_right = np.zeros(2047)
@@ -72,7 +87,6 @@ class PlaybackThread(AudioIOThread):
 
         self.play_stream = sd.OutputStream(samplerate=self.sampling_freq, channels=2, blocksize=self.chunk_samples,
                                            callback=self.callback)
-        self.done = False
 
     def run(self):
         self.play_stream.start()
@@ -121,9 +135,7 @@ class PlaybackThread(AudioIOThread):
             self.done = True
             print("stopped")
 
-    def set_data(self, play_data, positional_data=None, creator=True):
+    def set_data(self, play_data, positional_data=None):
 
         self.play_data = play_data
-
-        if not creator:
-            self.positional_data = positional_data
+        self.positional_data = positional_data
