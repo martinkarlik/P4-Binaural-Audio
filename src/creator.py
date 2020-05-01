@@ -15,7 +15,6 @@ recording = None
 playback = None
 number_of_recordings_done = 0
 
-
 while interface.running:
     interface.update()
 
@@ -45,7 +44,6 @@ while interface.running:
         reverb_data = []
         if len(audio_data) > 0:
             positional_data, reverb_data = audio_processing.preprocess_data(recording.get_data(), np.array(audio_data))
-
 
         print("rec shape", recording.get_data().shape)
 
