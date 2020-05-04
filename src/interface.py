@@ -169,7 +169,11 @@ class CreatorInterface(Interface):
 
             for button in self.reverb_buttons.values():
                 if button.shown:
-                    button.display(surface, 0, 1 if not button.hovered else 1.1)
+                    if button == self.reverb_buttons[self.current_audio_data["reverb"]]:
+                        button.display(surface, 0, 1.2)
+                    else:
+                        button.display(surface, 0, 1 if not button.hovered else 1.1)
+
 
         def check_events(self, surface, mouse_data, playback_state):
 
@@ -222,6 +226,7 @@ class CreatorInterface(Interface):
 
             if playback_state["stopped"]:
 
+                print("stopped")
                 if len(self.full_audio_data) > 0:
                     position_time = playback_state["timer"].get_time() - np.sum(np.array(self.full_audio_data)[:, 1])
                     self.full_audio_data.append((self.previous_audio_data, position_time))
@@ -285,8 +290,8 @@ class CreatorInterface(Interface):
                 self.buttons["pause_button"].replace(self.buttons["play_button"])
 
             elif self.playback_state["stopped"]:
-                # self.playback_state["timer"].active = False
-                # self.playback_state["timer"].join()
+                self.playback_state["timer"].active = False
+                self.playback_state["timer"].join()
                 self.playback_state["in_process"] = False
                 self.buttons["pause_button"].replace(self.buttons["play_button"])
 

@@ -22,6 +22,8 @@ while interface.running:
         recording = audio_io.RecordingThread()
         recording.start()
 
+    # elif interface.audio_manager.recording_state["in_process"]
+
     elif interface.audio_manager.recording_state["stopped"]:
         recording.stop()
 
@@ -45,7 +47,11 @@ while interface.running:
             positional_data, reverb_data = audio_processing.preprocess_data(recording.get_data(), np.array(audio_data))
 
         # reverb_output = audio_processing.apply_reverb_filtering(recording.get_data(), reverb_data)
+        # sf.write("../dependencies/audio_samples/stereo_sample_dk.wav", recording.get_data(), 41100)
         binaural_output = audio_processing.apply_binaural_filtering(recording.get_data(), positional_data)
+
+        # sf.write("../dependencies/audio_samples/binaural_sample_dk.wav", binaural_output, 41100)
+        break
 
         # ---------------------------------------- HANDLE CSV FILE -------------------------------------------------
 
