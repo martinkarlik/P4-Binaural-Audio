@@ -15,8 +15,6 @@ recording = None
 playback = None
 number_of_recordings_done = 0
 
-
-
 while interface.running:
     interface.update()
 
@@ -60,7 +58,6 @@ while interface.running:
         else:
             pd.DataFrame(positional_data).to_csv(csv_file_name, header=False, index=False)
             sf.write(wav_file_name, recording.get_data(), audio_io.sampling_freq)
-
 
 
 # TODO playback in creator and playback in listener
