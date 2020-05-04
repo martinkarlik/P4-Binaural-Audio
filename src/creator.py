@@ -29,6 +29,7 @@ while interface.running:
             recording = audio_io.RecordingThread()
             recording.start()
         except sounddevice.PortAudioError:
+            interface.audio_manager.recording_state["stopped"] = True
             show_error_message("JAKUB STOP")
 
     elif interface.audio_manager.recording_state["stopped"]:
