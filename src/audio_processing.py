@@ -45,29 +45,50 @@ def preprocess_data(rec_data, audio_data):
 
 
 
-def add_reverb(input_signal, sampling_freq, reverb_type):
+def apply_reverb_filtering(input_signal, reverb_data):
 
-    if reverb_type == "anechoic":
-        return input_signal
-    else:
-        if reverb_type == "forest":
-            reverb_impulse, sampling_freq = librosa.load('../dependencies/impulse_responses/forrest.wav', sr=sampling_freq)
-        elif reverb_type == "church":
-            reverb_impulse, sampling_freq = librosa.load('../dependencies/impulse_responses/church_balcony.wav', sr=sampling_freq)
-        elif reverb_type == "cave":
-            reverb_impulse, sampling_freq = librosa.load('../dependencies/impulse_responses/cave.wav', sr=sampling_freq)
 
-        input_signal = np.reshape(input_signal, (-1, 1))
-        print("tansposed input: ", input_signal.shape)
-        reverb_impulse = np.reshape(reverb_impulse, (-1, 1))
-        # print("Reverb impulse: ", reverb_impulse.shape)
-        output = fftconvolve(input_signal, reverb_impulse, mode="same")
-        output = np.append(output, output, axis=1)
-        print("output signal: ", output.shape)
-        # sd.play(output)
-        # print("playing")
-        # sd.wait()
-        return output
+    forest_ir = librosa.load('../dependencies/impulse_responses/forrest.wav')
+    church_ir = librosa.load('../dependencies/impulse_responses/church_balcony.wav')
+    cave_ir = librosa.load('../dependencies/impulse_responses/cave.wav')
+
+    input_signal_right_transposed = np.reshape(input_signal[:, 0], (-1, 1)).transpose()
+    input_signal_left_transposed = np.reshape(input_signal[:, 1], (-1, 1)).transpose()
+
+    total_samples = len(input_signal)
+
+    output_ear_right = np.zeros([1, total_samples])
+    output_ear_left = np.zeros([1, total_samples])
+
+    elapsed_duration = 0
+
+    for reverb in reverb_data:
+        reverb_type = reverb[0]
+        duration = reverb[1]
+
+        start_index = elapsed_duration
+        elapsed_duration += duration
+        end_index = elapsed_duration
+
+        if reverb_type == "anechoic":
+            output_ear_right[0, start_index:end_index] = input_signal_right_transposed[0, start_index:end_index]
+            output_ear_left[0, start_index:end_index] = input_signal_left_transposed[0, start_index:end_index]
+        else:
+            if reverb_type == "forest":
+                reverb_ir = forest_ir
+            elif reverb_type == "church":
+                reverb_ir = church_ir
+            else:
+                reverb_ir = cave_ir
+
+            output_ear_right[0, start_index:end_index] = fftconvolve(input_signal_right_transposed[0, start_index:end_index], reverb_ir, mode="same")
+            output_ear_left[0, start_index:end_index] = fftconvolve(input_signal_left_transposed[0, start_index:end_index], reverb_ir, mode="same")
+
+    output = np.append(output_ear_right.transpose(), output_ear_left.transpose(), axis=1)
+    print("playing non real time reverb output")
+    sd.play(output)
+    sd.wait()
+    return output
 
 
 def apply_binaural_filtering(input_signal, positional_data):
