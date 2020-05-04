@@ -30,7 +30,7 @@ while interface.running:
             recording.start()
         except sounddevice.PortAudioError:
             interface.audio_manager.recording_state["stopped"] = True
-            show_error_message("JAKUB STOP")
+            show_error_message("No recognized microphone")
 
     # elif interface.audio_manager.recording_state["in_process"]
 
@@ -51,7 +51,6 @@ while interface.running:
             show_error_message("Record something first")
 
     elif interface.audio_manager.playback_state["in_process"]:
-        print("Recording in process")
         try:
             if playback.done:
                 interface.audio_manager.playback_state["terminated"] = True
@@ -72,15 +71,12 @@ while interface.running:
                 positional_data, reverb_data = audio_processing.preprocess_data(recording.get_data(), np.array(audio_data))
 
             # reverb_output = audio_processing.apply_reverb_filtering(recording.get_data(), reverb_data)
-            sf.write("../dependencies/audio_samples/stereo_sample_sk2.wav", recording.get_data(), 48000)
+            # sf.write("../dependencies/audio_samples/stereo_sample_sk2.wav", recording.get_data(), 48000)
             binaural_output = audio_processing.apply_binaural_filtering(recording.get_data(), positional_data)
-
-            sf.write("../dependencies/audio_samples/binaural_sample_sk2.wav", binaural_output, 48000)
-            break
-
+            # sf.write("../dependencies/audio_samples/binaural_sample_sk2.wav", binaural_output, 48000)
+            # break
 
             # ---------------------------------------- HANDLE CSV FILE -------------------------------------------------
-
             csv_file_name = file_names.get_csv_file_path()
             wav_file_name = file_names.get_wav_file_path()
             if os.path.isfile(csv_file_name):
