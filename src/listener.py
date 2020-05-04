@@ -21,22 +21,20 @@ while interface.running:
     if interface.player_controller.buttons["open_file_button"].clicked:
         # try to load in the most recently created csv and audio/wav file
         try:
-            csv_loaded = list(csv.reader(open(file_names.get_csv_file_path())))
+            root = tkinter.Tk()
+            root.withdraw()  # use to hide tkinter window
+            tempdir = fd.askopenfilename(initialdir = "../dependencies/csv_data",filetypes=(("Template files", "*.csv"), ("All files", "*")))
+            csv_loaded = list(csv.reader(open(tempdir)))
             csv_loaded = np.array(csv_loaded)
-            print(csv_loaded)
-            print(csv_loaded[0, 2])
-            print(csv_loaded[0][2])
+            print(csv_loaded.shape)
             # for i in csv_loaded:
             #     print(i)
 
             # Tkinter is for if we want the user to choose a wav file instead of just playing the most recent
-            # root = tkinter.Tk()
-            # root.withdraw()  # use to hide tkinter window
-            # currdir = os.getcwd()
-            # tempdir = fd.askopenfilename(filetypes = (("Template files", "*.wav"), ("All files", "*")))
-            # audio_to_play, _ = sf.read(tempdir)
+            tempdir = fd.askopenfilename(initialdir="../dependencies/wav_data", filetypes = (("Template files", "*.wav"), ("All files", "*")))
+            audio_to_play, _ = sf.read(tempdir)
 
-            audio_to_play, _ = sf.read(file_names.get_wav_file_path())
+            #audio_to_play, _ = sf.read(file_names.get_wav_file_path())
             audio_to_play = np.reshape(audio_to_play, (-1, 2)).transpose()
             # print(audio_to_play.shape)
         except FileNotFoundError:
@@ -49,7 +47,7 @@ while interface.running:
 
     if interface.player_controller.playback_state["started"]:
         if audio_to_play is not None:
-            
+
             positional_data = np.zeros(csv_loaded.shape)
             positional_data[:, 0] = csv_loaded[:, 0].astype(int)
             positional_data[:, 1] = csv_loaded[:, 1].astype(float)

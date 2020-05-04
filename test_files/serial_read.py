@@ -3,7 +3,6 @@ import time
 
 received = []
 gyro_rotation = 0
-sent = False
 
 ser = serial.Serial()
 ser.baudrate = 115200
@@ -27,6 +26,7 @@ while ser.is_open:
     elif len(received) == 8:
         # Now print the gyro values, or store it in a value 
         gyro_rotation = int(line)
+        print(gyro_rotation)
 
     # the third message, (0,1,2), is waiting for the arduino to receive a message so we send it
     if len(received) == 3:
