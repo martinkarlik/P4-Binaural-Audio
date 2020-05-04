@@ -35,7 +35,10 @@ while interface.running:
     # elif interface.audio_manager.recording_state["in_process"]
 
     elif interface.audio_manager.recording_state["stopped"]:
-        recording.stop()
+        try:
+            recording.stop()
+        except AttributeError:
+            print("blip blop you fook")
 
     if interface.audio_manager.playback_state["started"]:
         print("Recording started")
