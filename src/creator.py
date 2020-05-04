@@ -51,7 +51,7 @@ while interface.running:
         print("Recording in process")
         try:
             if playback.done:
-                interface.audio_manager.playback_state["stopped"] = True
+                interface.audio_manager.playback_state["terminated"] = True
                 playback.done = False
                 print("Recording done")
         except AttributeError:
@@ -69,10 +69,10 @@ while interface.running:
                 positional_data, reverb_data = audio_processing.preprocess_data(recording.get_data(), np.array(audio_data))
 
             # reverb_output = audio_processing.apply_reverb_filtering(recording.get_data(), reverb_data)
-            # sf.write("../dependencies/audio_samples/stereo_sample_dk.wav", recording.get_data(), 41100)
+            sf.write("../dependencies/audio_samples/stereo_sample_sk2.wav", recording.get_data(), 48000)
             binaural_output = audio_processing.apply_binaural_filtering(recording.get_data(), positional_data)
 
-            # sf.write("../dependencies/audio_samples/binaural_sample_dk.wav", binaural_output, 41100)
+            sf.write("../dependencies/audio_samples/binaural_sample_sk2.wav", binaural_output, 48000)
             break
 
 
