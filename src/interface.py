@@ -177,7 +177,11 @@ class CreatorInterface(Interface):
 
             for button in self.reverb_buttons.values():
                 if button.shown:
-                    button.display(surface, 0, 1 if not button.hovered else 1.1)
+                    if button == self.reverb_buttons[self.current_audio_data["reverb"]]:
+                        button.display(surface, 0, 1.2)
+                    else:
+                        button.display(surface, 0, 1 if not button.hovered else 1.1)
+
 
         def check_events(self, surface, mouse_data, playback_state):
 
@@ -230,6 +234,7 @@ class CreatorInterface(Interface):
 
             if playback_state["stopped"]:
 
+                print("stopped")
                 if len(self.full_audio_data) > 0:
                     position_time = playback_state["timer"].get_time() - np.sum(np.array(self.full_audio_data)[:, 1])
                     self.full_audio_data.append((self.previous_audio_data, position_time))
@@ -259,7 +264,7 @@ class CreatorInterface(Interface):
             self.text_fields = text_fields
 
             self.recording_state = dict(started=False, stopped=False, in_process=False, timer=self.Timer())
-            self.playback_state = dict(started=False, stopped=False, in_process=False, paused=False, timer=self.Timer())
+            self.playback_state = dict(started=False, stopped=False, in_process=False, paused=False, terminated=False, timer=self.Timer())
 
         def display(self, surface):
 
@@ -292,9 +297,14 @@ class CreatorInterface(Interface):
                 self.playback_state["paused"] = True
                 self.buttons["pause_button"].replace(self.buttons["play_button"])
 
+            elif self.playback_state["terminated"]:
+                self.playback_state["stopped"] = True
+                self.playback_state["terminated"] = False
+
             elif self.playback_state["stopped"]:
-                # self.playback_state["timer"].active = False
-                # self.playback_state["timer"].join()
+                self.playback_state["timer"].active = False
+                self.playback_state["timer"].join()
+                self.playback_state["stopped"] = False
                 self.playback_state["in_process"] = False
                 self.buttons["pause_button"].replace(self.buttons["play_button"])
 
@@ -310,14 +320,20 @@ class CreatorInterface(Interface):
             elif self.recording_state["stopped"]:
                 self.recording_state["timer"].active = False
                 self.recording_state["timer"].join()
+                self.recording_state["stopped"] = True
                 self.recording_state["in_process"] = False
                 self.buttons["rec_stop_button"].replace(self.buttons["rec_start_button"])
 
             rec_time = int(self.recording_state["timer"].get_time())
             play_time = int(self.playback_state["timer"].get_time())
 
-            self.text_fields["rec_timer"].text = f"0{rec_time // 60}:0{rec_time % 60}"
-            self.text_fields["play_timer"].text = f"0{play_time // 60}:0{play_time % 60}"
+            minutes = f"0{rec_time // 60}" if rec_time // 60 < 10 else f"{rec_time // 60}"
+            seconds = f"0{rec_time % 60}" if rec_time % 60 < 10 else f"{rec_time % 60}"
+            self.text_fields["rec_timer"].text = minutes + ":" + seconds
+
+            minutes = f"0{play_time // 60}" if play_time // 60 < 10 else f"{play_time // 60}"
+            seconds = f"0{play_time % 60}" if play_time % 60 < 10 else f"{play_time % 60}"
+            self.text_fields["play_timer"].text = minutes + ":" + seconds
 
     def update(self):
         mouse_data = dict(pos=pygame.mouse.get_pos(), pressed=pygame.mouse.get_pressed()[0], clicked=False)
