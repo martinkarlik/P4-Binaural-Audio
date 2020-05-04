@@ -2,50 +2,59 @@ import csv
 import numpy as np
 import soundfile as sf
 from src import interface, audio_io
-from src import file_names
-from tkinter import messagebox
-import tkinter
 import tkinter.filedialog as fd
-import os
-from src import audio_processing
+from src.interface import show_error_message
 
+root = interface.root
 interface = interface.ListenerInterface()
 
 csv_loaded = np.array([[]])
 audio_to_play = None
 playback = None
 
+
+def load_dependencies():
+    global csv_loaded, audio_to_play
+
+    tempdir = fd.askopenfilename(initialdir="../dependencies/csv_data",
+                                 filetypes=(("Template files", "*.csv"), ("All files", "*")))
+    try:
+        csv_loaded = list(csv.reader(open(tempdir)))
+        csv_loaded = np.array(csv_loaded)
+        print(csv_loaded.shape)
+    except UnicodeDecodeError:
+        show_error_message("Error wrong file type, expected type .csv")
+        load_dependencies()
+    except FileNotFoundError:
+        show_error_message("Error no file found")
+        load_dependencies()
+
+    tempdir = fd.askopenfilename(initialdir="../dependencies/wav_data",
+                                 filetypes=(("Template files", "*.wav"), ("All files", "*")))
+    try:
+        audio_to_play, _ = sf.read(tempdir)
+        audio_to_play = np.reshape(audio_to_play, (-1, 2)).transpose()
+        # print(audio_to_play.shape)
+    except (RuntimeError, UnicodeDecodeError):
+        show_error_message("Error wrong file type, expected type .wav")
+        load_dependencies()
+    except FileNotFoundError:
+        show_error_message("Error no file found")
+        load_dependencies()
+
+    return csv_loaded, audio_to_play
+
+
 while interface.running:
     interface.update()
+    root.withdraw()
 
     if interface.player_controller.buttons["open_file_button"].clicked:
         # try to load in the most recently created csv and audio/wav file
-        try:
-            root = tkinter.Tk()
-            root.withdraw()  # use to hide tkinter window
-            tempdir = fd.askopenfilename(initialdir = "../dependencies/csv_data",filetypes=(("Template files", "*.csv"), ("All files", "*")))
-            csv_loaded = list(csv.reader(open(tempdir)))
-            csv_loaded = np.array(csv_loaded)
-            print(csv_loaded.shape)
-            # for i in csv_loaded:
-            #     print(i)
-
-            # Tkinter is for if we want the user to choose a wav file instead of just playing the most recent
-            tempdir = fd.askopenfilename(initialdir="../dependencies/wav_data", filetypes = (("Template files", "*.wav"), ("All files", "*")))
-            audio_to_play, _ = sf.read(tempdir)
-
-            #audio_to_play, _ = sf.read(file_names.get_wav_file_path())
-            audio_to_play = np.reshape(audio_to_play, (-1, 2)).transpose()
-            # print(audio_to_play.shape)
-        except FileNotFoundError:
-            print("No you fool, you gotta create something first. LET'S GET CREATIVE")
-            # hide main window
-            root = tkinter.Tk()
-            root.withdraw()
-            # show an error box for the user
-            messagebox.showinfo("ERROR", "Error, no files found")
+        load_dependencies()
 
     if interface.player_controller.playback_state["started"]:
+
         if audio_to_play is not None:
 
             positional_data = np.zeros(csv_loaded.shape)
@@ -56,8 +65,11 @@ while interface.running:
             playback = audio_io.DynamicPlaybackThread()
             playback.set_data(audio_to_play, positional_data)
             playback.start()
+
         else:
             print("No file found and you can't play nothing, idiot")
+            interface.player_controller.playback_state["stopped"] = True
+            show_error_message("Error, no file loaded")
 
     elif interface.player_controller.playback_state["in_process"]:
         if audio_to_play is not None:

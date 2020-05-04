@@ -1,13 +1,11 @@
 import threading
-
 import sofa
 import sounddevice as sd
 import numpy as np
 import librosa
 import serial
-from scipy.interpolate import interp1d
-from scipy.signal import fftconvolve
 from scipy.signal import *
+from src.interface import show_error_message
 
 signal, sampling_freq = librosa.load('../dependencies/impulse_responses/church_balcony.wav', sr=44100)
 signal = np.reshape(signal, (-1, 1))
@@ -98,7 +96,7 @@ class DynamicPlaybackThread(PlaybackThread):
         self.gyroscope.run()
 
     def callback(self, outdata, frames, time, status):
-        if self.gyroscope.gyro_is_ready():
+        if self.gyroscope.gyro_is_ready() and self.gyroscope.gyro_connected:
             corresponding_sample = self.chunk_index * frames + frames / 2
 
             elapsed_samples = self.positional_data[0][2]
@@ -128,7 +126,7 @@ class DynamicPlaybackThread(PlaybackThread):
                         indices={"M": int(abs(angle - gyro_data)), "R": 1, "E": 0})
                 else:
                     ir_ear_right = self.hrtf_database[radius].Data.IR.get_values(
-                        indices={"M":  int((angle + gyro_data) % 360), "R": 0, "E": 0})
+                        indices={"M": int((angle + gyro_data) % 360), "R": 0, "E": 0})
                     ir_ear_left = self.hrtf_database[radius].Data.IR.get_values(
                         indices={"M": int((angle + gyro_data) % 360), "R": 1, "E": 0})
 
@@ -142,9 +140,6 @@ class DynamicPlaybackThread(PlaybackThread):
                 outdata[:, 1], self.filter_state_left = \
                     lfilter(ir_ear_left, 1, self.play_data[1, start_index:end_index], zi=self.filter_state_left)
 
-            # outdata[:, 0] = self.play_data[0, start_index:end_index]
-            # outdata[:, 1] = self.play_data[1, start_index:end_index]
-
             self.chunk_index += 1
 
             if self.chunk_index + 1 == len(self.play_data) / frames:
@@ -152,6 +147,11 @@ class DynamicPlaybackThread(PlaybackThread):
                 self.gyroscope.close_serial()
                 self.done = True
                 print("stopped")
+        else:
+            self.play_stream.stop()
+            self.done = True
+            print("No gyro detected...")
+            # TODO throw and error but i have no clue how
 
     def set_data(self, play_data, positional_data=None):
 
@@ -167,30 +167,34 @@ class GyroThread(threading.Thread):
         self.ser = serial.Serial()
         self.ser.baudrate = 115200
         self.ser.port = 'COM3'
+        self.gyro_connected = True
 
     def run(self):
-        self.ser.open()
-        while self.ser.is_open:
-            line = self.ser.readline().decode()
+        try:
+            self.ser.open()
+            while self.ser.is_open:
+                line = self.ser.readline().decode()
 
-            # the third message, (0,1,2), is waiting for the arduino to receive a message so we send it
-            if len(self.received) == 3:
-                # Send a signal to the arduino to get the gyroscope to work
-                self.ser.write(str.encode(" "))
+                # the third message, (0,1,2), is waiting for the arduino to receive a message so we send it
+                if len(self.received) == 3:
+                    # Send a signal to the arduino to get the gyroscope to work
+                    self.ser.write(str.encode(" "))
 
-            # waiting for the gyroscope to be ready
-            if len(self.received) < 8:
-                # time.sleep(1)
-                # The first 3 messages are useless since it is just setup.
-                self.received.append(line)
-                print("Hang tight almost there!")
-            elif len(self.received) == 8:
-                # Now print the gyro values, or store it in a value
-                gyro = int(line)
-                if gyro < 0:
-                    gyro += 360
-                gyro = (180 + gyro) % 360
-                self.gyro_rotation = gyro
+                # waiting for the gyroscope to be ready
+                if len(self.received) < 8:
+                    # time.sleep(1)
+                    # The first 3 messages are useless since it is just setup.
+                    self.received.append(line)
+                    print("Hang tight almost there!")
+                elif len(self.received) == 8:
+                    # Now print the gyro values, or store it in a value
+                    gyro = int(line)
+                    if gyro < 0:
+                        gyro += 360
+                    gyro = (180 + gyro) % 360
+                    self.gyro_rotation = gyro
+        except serial.serialutil.SerialException:
+            self.gyro_connected = False
 
     def get_gyro_data(self):
         return self.gyro_rotation

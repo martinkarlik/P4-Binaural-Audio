@@ -3,6 +3,14 @@ import numpy as np
 import threading
 import time
 from scipy.interpolate import interp1d
+from tkinter import messagebox
+import tkinter as t
+
+root = t.Tk()
+
+
+def show_error_message(message):
+    messagebox.showinfo("Error", message)
 
 
 class Interface:
@@ -68,7 +76,7 @@ class Interface:
             super().__init__(pos, shown)
             self.image = image
             self.size = (
-            image.get_rect().width * self.initial_scale_value, image.get_rect().height * self.initial_scale_value)
+                image.get_rect().width * self.initial_scale_value, image.get_rect().height * self.initial_scale_value)
             self.radius = self.size[0] / 2
             self.hovered = False
             self.pressed = False
