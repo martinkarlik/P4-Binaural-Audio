@@ -3,6 +3,8 @@ from tkinter import messagebox
 import numpy as np
 import pandas as pd
 import os.path
+
+import sounddevice
 import soundfile as sf
 
 from src import interface
@@ -23,8 +25,11 @@ while interface.running:
     root.withdraw()
 
     if interface.audio_manager.recording_state["started"]:
-        recording = audio_io.RecordingThread()
-        recording.start()
+        try:
+            recording = audio_io.RecordingThread()
+            recording.start()
+        except sounddevice.PortAudioError:
+            show_error_message("JAKUB STOP")
 
     elif interface.audio_manager.recording_state["stopped"]:
         recording.stop()
