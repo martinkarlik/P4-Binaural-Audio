@@ -67,7 +67,8 @@ class Interface:
         def __init__(self, image, pos, shown=True):
             super().__init__(pos, shown)
             self.image = image
-            self.size = (image.get_rect().width * self.initial_scale_value, image.get_rect().height * self.initial_scale_value)
+            self.size = (
+            image.get_rect().width * self.initial_scale_value, image.get_rect().height * self.initial_scale_value)
             self.radius = self.size[0] / 2
             self.hovered = False
             self.pressed = False
@@ -90,7 +91,7 @@ class Interface:
             self.text = "00:00"
 
         def display(self, surface, rotate_value=0, scale_value=1):
-            text = self.font.render(self.text, True, (57,176,141))
+            text = self.font.render(self.text, True, (57, 176, 141))
             text_rect = text.get_rect(center=self.get_abs_pos(surface))
             surface.blit(text, text_rect)
 
@@ -131,10 +132,10 @@ class CreatorInterface(Interface):
             self.Button(pygame.image.load('../dependencies/images/circle.png'), [0.2685, 0.389]),
             self.Button(pygame.image.load('../dependencies/images/jakub.png'), [0.269, 0.4]),
             dict(
-                anechoic=self.Button(pygame.image.load('../dependencies/images/anechoic.png'), [0.114, 0.870]),
-                forest=self.Button(pygame.image.load('../dependencies/images/forest.png'), [0.217, 0.870]),
-                church=self.Button(pygame.image.load('../dependencies/images/church.png'), [0.321, 0.870]),
-                cave=self.Button(pygame.image.load('../dependencies/images/cave.png'), [0.424, 0.870])
+                anechoic=self.Button(pygame.image.load('../dependencies/images/anechoic.png'), [0.114, 0.890]),
+                forest=self.Button(pygame.image.load('../dependencies/images/forest.png'), [0.217, 0.890]),
+                church=self.Button(pygame.image.load('../dependencies/images/church.png'), [0.321, 0.890]),
+                cave=self.Button(pygame.image.load('../dependencies/images/cave.png'), [0.424, 0.890])
             )
         )
 
@@ -228,7 +229,6 @@ class CreatorInterface(Interface):
                     position_time = playback_state["timer"].get_time()
                     self.full_audio_data.append((self.previous_audio_data, position_time))
 
-
     class AudioManager:
 
         class Timer(threading.Thread):
@@ -308,8 +308,8 @@ class CreatorInterface(Interface):
             rec_time = int(self.recording_state["timer"].get_time())
             play_time = int(self.playback_state["timer"].get_time())
 
-            self.text_fields["rec_timer"].text = f"0{rec_time // 60 }:0{rec_time % 60}"
-            self.text_fields["play_timer"].text = f"0{play_time // 60 }:0{play_time % 60}"
+            self.text_fields["rec_timer"].text = f"0{rec_time // 60}:0{rec_time % 60}"
+            self.text_fields["play_timer"].text = f"0{play_time // 60}:0{play_time % 60}"
 
     def update(self):
         mouse_data = dict(pos=pygame.mouse.get_pos(), pressed=pygame.mouse.get_pressed()[0], clicked=False)
@@ -328,7 +328,7 @@ class CreatorInterface(Interface):
         self.audio_controller.check_events(self.screen, mouse_data, self.audio_manager.playback_state)
 
         # display all the visuals
-        self.screen.fill((40,45,46))
+        self.screen.fill((40, 45, 46))
 
         self.audio_manager.display(self.screen)
         self.audio_controller.display(self.screen)
@@ -381,7 +381,7 @@ class ListenerInterface(Interface):
             self.playing_progress = 1
 
             # self.paused_state = dict(started=False)
-            self.playback_state = dict(started=False,  stopped=False, in_process=False, paused=False)
+            self.playback_state = dict(started=False, stopped=False, in_process=False, paused=False)
 
         def display(self, surface):
 
@@ -391,7 +391,7 @@ class ListenerInterface(Interface):
             self.pulse.display(surface)
 
             selection_pos = (self.slider_position, self.slider.get_abs_pos(surface)[1])
-            pygame.draw.circle(surface, (253, 92, 92), selection_pos, 20)
+            pygame.draw.circle(surface, (112, 199, 172), selection_pos, 20)
 
             for button in self.buttons.values():
                 if button.shown:

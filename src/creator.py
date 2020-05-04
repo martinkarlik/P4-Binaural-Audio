@@ -52,7 +52,10 @@ while interface.running:
         csv_file_name = file_names.get_csv_file_path()
         wav_file_name = file_names.get_wav_file_path()
         if os.path.isfile(csv_file_name):
-            file_names.increase_number_of_recordings_created()
+            while os.path.isfile(csv_file_name):
+                file_names.increase_number_of_recordings_created()
+                csv_file_name = file_names.get_csv_file_path()
+                wav_file_name = file_names.get_wav_file_path()
             sf.write(wav_file_name, recording.get_data(), audio_io.sampling_freq)
             pd.DataFrame(positional_data).to_csv(csv_file_name, header=False, index=False)
         else:
