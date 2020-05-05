@@ -29,7 +29,6 @@ while interface.running:
             interface.audio_manager.recording_state["stopped"] = True
             show_error_message("No recognized microphone")
 
-    # elif interface.audio_manager.recording_state["in_process"]
 
     elif interface.audio_manager.recording_state["stopped"]:
         try:

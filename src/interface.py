@@ -243,13 +243,15 @@ class CreatorInterface(Interface):
 
             if edit_state["stopped"]:
 
-                print("stopped")
                 if len(self.full_audio_data) > 0:
                     position_time = edit_state["timer"].get_time() - np.sum(np.array(self.full_audio_data)[:, 1])
                     self.full_audio_data.append((self.previous_audio_data, position_time))
                 else:
                     position_time = edit_state["timer"].get_time()
                     self.full_audio_data.append((self.previous_audio_data, position_time))
+
+        def get_audio_data(self):
+            return np.array(self.full_audio_data)
 
     class AudioManager:
 
@@ -381,6 +383,7 @@ class CreatorInterface(Interface):
             elif event.type == pygame.KEYDOWN and event.unicode == 'c':
                 self.audio_controller.current_audio_data["angle"] = -1
                 self.audio_controller.current_audio_data["radius"] = 0
+                self.audio_controller.current_audio_data["reverb"] = "anechoic"
 
             elif mouse_data["pressed"] and event.type == pygame.MOUSEBUTTONUP:
                 mouse_data["clicked"] = True
