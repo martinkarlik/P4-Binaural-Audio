@@ -78,18 +78,20 @@ while interface.running:
 
     if interface.audio_manager.buttons["save_button"].clicked:  # should be RENDER button
         print("Rendering")
-
-        audio_data = interface.audio_controller.full_audio_data
-        positional_data = []
-        reverb_data = []
-        if len(audio_data) > 0:
-            positional_data, reverb_data = audio_processing.preprocess_data(recording.get_data(), np.array(audio_data))
-
-        # reverb_output = audio_processing.apply_reverb_filtering(recording.get_data(), reverb_data)
-        # sf.write("../dependencies/audio_samples/stereo_sample_sk2.wav", recording.get_data(), 48000)
-        binaural_output = audio_processing.apply_binaural_filtering(recording.get_data(), positional_data)
-        # sf.write("../dependencies/audio_samples/binaural_sample_sk2.wav", binaural_output, 48000)
-        # break
+        try:
+            audio_data = interface.audio_controller.full_audio_data
+            positional_data = []
+            reverb_data = []
+            if len(audio_data) > 0:
+                positional_data, reverb_data = audio_processing.preprocess_data(recording.get_data(), np.array(audio_data))
+    
+            # reverb_output = audio_processing.apply_reverb_filtering(recording.get_data(), reverb_data)
+            # sf.write("../dependencies/audio_samples/stereo_sample_sk2.wav", recording.get_data(), 48000)
+            binaural_output = audio_processing.apply_binaural_filtering(recording.get_data(), positional_data)
+            # sf.write("../dependencies/audio_samples/binaural_sample_sk2.wav", binaural_output, 48000)
+            # break
+        except AttributeError:
+            show_error_message("Wrong cunk-length for the z-filter")
 
         # ---------------------------------------- HANDLE CSV FILE -------------------------------------------------
         try:
