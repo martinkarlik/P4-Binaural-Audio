@@ -6,12 +6,8 @@ from scipy.interpolate import interp1d
 from tkinter import messagebox
 import tkinter as t
 
-root = t.Tk()
+
 text_blue = (62, 132, 240)
-
-
-def show_error_message(message):
-    messagebox.showinfo("Error", message)
 
 
 class Interface:
@@ -19,6 +15,7 @@ class Interface:
 
     def __init__(self):
         pygame.init()
+        self.root = t.Tk()
 
     class Widget:
 
@@ -104,6 +101,9 @@ class Interface:
             text_rect = text.get_rect(center=self.get_abs_pos(surface))
             surface.blit(text, text_rect)
 
+    def show_error_message(self, message):
+        messagebox.showinfo("Error", message)
+
 
 class CreatorInterface(Interface):
     DEFAULT_DIMS = (1920, 1080)
@@ -186,11 +186,10 @@ class CreatorInterface(Interface):
                 # self.selection.pos = np.divide(selection_pos, (1920, 1080))
                 # self.selection.display(surface, 0, 5)
 
+            self.reverb_buttons[self.current_audio_data["reverb"]].display(surface, 0, 1.2)
             for button in self.reverb_buttons.values():
                 if button.shown:
-                    if button == self.reverb_buttons[self.current_audio_data["reverb"]]:
-                        button.display(surface, 0, 1.2)
-                    else:
+                    if button != self.reverb_buttons[self.current_audio_data["reverb"]]:
                         button.display(surface, 0, 1 if not button.hovered else 1.1)
 
         def check_events(self, surface, mouse_data, playback_state):
@@ -371,6 +370,7 @@ class CreatorInterface(Interface):
         self.audio_manager.display(self.screen)
         self.audio_controller.display(self.screen)
 
+        self.root.withdraw()
         pygame.display.update()
 
 

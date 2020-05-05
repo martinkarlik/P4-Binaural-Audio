@@ -5,18 +5,19 @@ from src import interface
 from src import audio_processing
 from src import audio_io
 from src import file_names
-from src.interface import show_error_message
 
-root = interface.root
 interface = interface.CreatorInterface()
 recording = None
 playback = None
+
+reverb_output = None
+binaural_output = None
+
 number_of_recordings_done = 0
 
 
 while interface.running:
     interface.update()
-    root.withdraw()
 
     if interface.audio_manager.recording_state["started"]:
         try:
@@ -24,8 +25,7 @@ while interface.running:
             recording.start()
         except sounddevice.PortAudioError:
             interface.audio_manager.recording_state["stopped"] = True
-            show_error_message("No recognized microphone")
-
+            interface.show_error_message("No recognized microphone.")
 
     elif interface.audio_manager.recording_state["stopped"]:
         try:
@@ -41,7 +41,7 @@ while interface.running:
             playback.start()
         except AttributeError:
             interface.audio_manager.playback_state["stopped"] = True
-            show_error_message("Record something first")
+            interface.show_error_message("Record something first.")
 
     elif interface.audio_manager.playback_state["in_process"]:
         try:
@@ -51,7 +51,7 @@ while interface.running:
                 print("Recording done")
         except AttributeError:
             interface.audio_manager.playback_state["stopped"] = True
-            show_error_message("Record something first")
+            interface.show_error_message("Record something first.")
 
     if interface.audio_manager.buttons["save_button"].clicked:  # should be RENDER button
         print("Rendering")
@@ -84,6 +84,6 @@ while interface.running:
                 pd.DataFrame(positional_data).to_csv(csv_file_name, header=False, index=False)
                 sf.write(wav_file_name, recording.get_data(), audio_io.sampling_freq)
         except AttributeError:
-            show_error_message("Record, and play something first")
+            interface.show_error_message("Record, and play something first")
         except ValueError:
             print("I have no clue, but like stop trying to record a second time will ya?")
