@@ -148,10 +148,46 @@ class DynamicPlaybackThread(PlaybackThread):
                 self.done = True
                 print("stopped")
         else:
-            self.play_stream.stop()
-            self.done = True
-            print("No gyro detected...")
-            # TODO throw and error but i have no clue how
+            print("playing without gyro")
+            corresponding_sample = self.chunk_index * frames + frames / 2
+            elapsed_samples = self.positional_data[0][2]
+            pos_index = 0
+            while elapsed_samples < corresponding_sample:
+                pos_index += 1
+                elapsed_samples += self.positional_data[pos_index][2]
+
+            angle = self.positional_data[pos_index][0]
+            radius = self.positional_data[pos_index][1]
+
+            start_index = self.chunk_index * frames
+            end_index = (self.chunk_index + 1) * frames
+
+            if angle == -1:  # don't apply any filters, output should stay stereo
+                outdata[:, 0] = self.play_data[0, start_index:end_index]
+                outdata[:, 1] = self.play_data[1, start_index:end_index]
+                self.filter_state_unknown = True
+            else:
+                ir_ear_right = self.hrtf_database[radius].Data.IR.get_values(
+                    indices={"M": angle, "R": 0, "E": 0})
+                ir_ear_left = self.hrtf_database[radius].Data.IR.get_values(
+                    indices={"M": angle, "R": 1, "E": 0})
+
+                if self.filter_state_unknown:
+                    self.filter_state_right = np.zeros(2047)
+                    self.filter_state_left = np.zeros(2047)
+                    self.filter_state_unknown = False
+
+                outdata[:, 0], self.filter_state_right = \
+                    lfilter(ir_ear_right, 1, self.play_data[0, start_index:end_index], zi=self.filter_state_right)
+                outdata[:, 1], self.filter_state_left = \
+                    lfilter(ir_ear_left, 1, self.play_data[1, start_index:end_index], zi=self.filter_state_left)
+
+            self.chunk_index += 1
+
+            if self.chunk_index + 1 == len(self.play_data) / frames:
+                self.play_stream.stop()
+                self.done = True
+                print("stopped without gyro")
 
     def set_data(self, play_data, positional_data=None):
 

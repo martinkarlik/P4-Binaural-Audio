@@ -7,6 +7,7 @@ from tkinter import messagebox
 import tkinter as t
 
 root = t.Tk()
+text_blue = (62, 132, 240)
 
 
 def show_error_message(message):
@@ -93,13 +94,13 @@ class Interface:
 
     class TextField(Widget):
 
-        def __init__(self, pos, shown=True):
+        def __init__(self, pos, text, size, shown=True):
             super().__init__(pos, shown)
-            self.font = pygame.font.Font('freesansbold.ttf', 32)
-            self.text = ""
+            self.font = pygame.font.Font('C:/Windows/Fonts/segoeuil.ttf', size)
+            self.text = text
 
         def display(self, surface, rotate_value=0, scale_value=1):
-            text = self.font.render(self.text, True, (57, 176, 141))
+            text = self.font.render(self.text, True, text_blue)
             text_rect = text.get_rect(center=self.get_abs_pos(surface))
             surface.blit(text, text_rect)
 
@@ -118,20 +119,29 @@ class CreatorInterface(Interface):
 
         self.audio_manager = self.AudioManager(
             dict(
-                play_button=self.Button(pygame.image.load('../dependencies/images/play_button.png'), [0.872, 0.290]),
-                pause_button=self.Button(pygame.image.load('../dependencies/images/pause_button.png'), [0.872, 0.290],
+                play_button=self.Button(pygame.image.load('../dependencies/images/play_button.png'), [0.872, 0.300]),
+                pause_button=self.Button(pygame.image.load('../dependencies/images/pause_button.png'), [0.872, 0.300],
                                          False),
-                save_button=self.Button(pygame.image.load('../dependencies/images/save_button.png'), [0.870, 0.555]),
+                save_button=self.Button(pygame.image.load('../dependencies/images/save_button.png'), [0.872, 0.565]),
                 discard_button=self.Button(pygame.image.load('../dependencies/images/discard_button.png'),
-                                           [0.659, 0.555]),
+                                           [0.660, 0.565]),
                 rec_start_button=self.Button(pygame.image.load('../dependencies/images/record_start_button.png'),
-                                             [0.660, 0.290]),
+                                             [0.660, 0.300]),
                 rec_stop_button=self.Button(pygame.image.load('../dependencies/images/record_stop_button.png'),
-                                            [0.660, 0.290], False)
+                                            [0.660, 0.300], False)
             ),
             dict(
-                rec_timer=self.TextField([0.659, 0.457], True),
-                play_timer=self.TextField([0.870, 0.457], True)
+                rec_text=self.TextField([0.658, 0.115], "Record", 41, True),
+                play_text=self.TextField([0.870, 0.115], "Play", 41, True),
+                edit_text=self.TextField([0.658, 0.642], "Edit audio", 21, True),
+                save_text=self.TextField([0.870, 0.642], "Save", 21, True),
+                record_time_text=self.TextField([0.759, 0.780], "Recorded time", 46, True),
+                recorded_timer=self.TextField([0.659, 0.880], "00:00/", 103, True), # Martin Use this
+                total_time_timer=self.TextField([0.859, 0.880], "00:27", 103, True), # and this
+                anechoic_text=self.TextField([0.114, 0.974], "Anechoic", 21, True),
+                forest_text=self.TextField([0.217, 0.974], "Forest", 21, True),
+                church_text=self.TextField([0.321, 0.974], "Church", 21, True),
+                cave_text=self.TextField([0.424, 0.974], "Cave", 21, True)
             )
         )
 
@@ -182,7 +192,6 @@ class CreatorInterface(Interface):
                         button.display(surface, 0, 1.2)
                     else:
                         button.display(surface, 0, 1 if not button.hovered else 1.1)
-
 
         def check_events(self, surface, mouse_data, playback_state):
 
@@ -267,7 +276,8 @@ class CreatorInterface(Interface):
             self.text_fields = text_fields
 
             self.recording_state = dict(started=False, stopped=False, in_process=False, timer=self.Timer())
-            self.playback_state = dict(started=False, stopped=False, in_process=False, paused=False, terminated=False, timer=self.Timer())
+            self.playback_state = dict(started=False, stopped=False, in_process=False, paused=False, terminated=False,
+                                       timer=self.Timer())
 
         def display(self, surface):
 
@@ -330,13 +340,13 @@ class CreatorInterface(Interface):
             rec_time = int(self.recording_state["timer"].get_time())
             play_time = int(self.playback_state["timer"].get_time())
 
-            minutes = f"0{rec_time // 60}" if rec_time // 60 < 10 else f"{rec_time // 60}"
-            seconds = f"0{rec_time % 60}" if rec_time % 60 < 10 else f"{rec_time % 60}"
-            self.text_fields["rec_timer"].text = minutes + ":" + seconds
-
-            minutes = f"0{play_time // 60}" if play_time // 60 < 10 else f"{play_time // 60}"
-            seconds = f"0{play_time % 60}" if play_time % 60 < 10 else f"{play_time % 60}"
-            self.text_fields["play_timer"].text = minutes + ":" + seconds
+            # minutes = f"0{rec_time // 60}" if rec_time // 60 < 10 else f"{rec_time // 60}"
+            # seconds = f"0{rec_time % 60}" if rec_time % 60 < 10 else f"{rec_time % 60}"
+            # self.text_fields["rec_timer"].text = minutes + ":" + seconds
+            #
+            # minutes = f"0{play_time // 60}" if play_time // 60 < 10 else f"{play_time // 60}"
+            # seconds = f"0{play_time % 60}" if play_time % 60 < 10 else f"{play_time % 60}"
+            # self.text_fields["play_timer"].text = minutes + ":" + seconds
 
     def update(self):
         mouse_data = dict(pos=pygame.mouse.get_pos(), pressed=pygame.mouse.get_pressed()[0], clicked=False)
