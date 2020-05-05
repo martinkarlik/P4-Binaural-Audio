@@ -44,17 +44,13 @@ def preprocess_data(rec_data, audio_data):
     return positional_data, reverb_data
 
 
-
 def apply_reverb_filtering(input_signal, reverb_data):
-
     # output = fftconvolve(input_signal, reverb_impulse, mode="same")
     # output = np.append(output, output, axis=1)
-
 
     forest_ir = librosa.load('../dependencies/impulse_responses/forrest.wav')
     church_ir = librosa.load('../dependencies/impulse_responses/church_balcony.wav')
     cave_ir = librosa.load('../dependencies/impulse_responses/cave.wav')
-
 
     input_signal_right_transposed = np.reshape(input_signal[:, 0], (-1, 1)).transpose()
     input_signal_left_transposed = np.reshape(input_signal[:, 1], (-1, 1)).transpose()
@@ -88,8 +84,10 @@ def apply_reverb_filtering(input_signal, reverb_data):
             print("Shape input: ", input_signal_right_transposed[0, start_index:end_index].shape)
             print("Shape ir: ", reverb_ir.shape)
             print("Output shape: ", output_ear_right[0, start_index:end_index].shape)
-            output_ear_right[0, start_index:end_index] = fftconvolve(input_signal_right_transposed[0, start_index:end_index], reverb_ir, mode="same")
-            output_ear_left[0, start_index:end_index] = fftconvolve(input_signal_left_transposed[0, start_index:end_index], reverb_ir, mode="same")
+            output_ear_right[0, start_index:end_index] = fftconvolve(
+                input_signal_right_transposed[0, start_index:end_index], reverb_ir, mode="same")
+            output_ear_left[0, start_index:end_index] = fftconvolve(
+                input_signal_left_transposed[0, start_index:end_index], reverb_ir, mode="same")
 
     output = np.append(output_ear_right.transpose(), output_ear_left.transpose(), axis=1)
     print("playing non real time reverb output")
@@ -99,13 +97,12 @@ def apply_reverb_filtering(input_signal, reverb_data):
 
 
 def apply_binaural_filtering(input_signal, positional_data):
-
     sofa_0_5 = sofa.Database.open('../dependencies/impulse_responses/QU_KEMAR_anechoic_0_5m.sofa')
     sofa_1 = sofa.Database.open('../dependencies/impulse_responses/QU_KEMAR_anechoic_1m.sofa')
     sofa_2 = sofa.Database.open('../dependencies/impulse_responses/QU_KEMAR_anechoic_2m.sofa')
     sofa_3 = sofa.Database.open('../dependencies/impulse_responses/QU_KEMAR_anechoic_3m.sofa')
 
-    hrtf_database = {0.2: sofa_0_5, 0.4: sofa_1, 0.8: sofa_2, 1.2: sofa_3}
+    hrtf_database = {0.001: sofa_0_5, 0.3: sofa_1, 0.58: sofa_2, 0.8: sofa_3}
 
     input_signal_right_transposed = np.reshape(input_signal[:, 0], (-1, 1)).transpose()
     input_signal_left_transposed = np.reshape(input_signal[:, 1], (-1, 1)).transpose()
@@ -115,13 +112,11 @@ def apply_binaural_filtering(input_signal, positional_data):
     output_ear_right = np.zeros([1, total_samples])
     output_ear_left = np.zeros([1, total_samples])
 
-
     elapsed_duration = 0
 
     filter_state_right = np.zeros([2047])
     filter_state_left = np.zeros([2047])
     filter_state_unknown = False
-
 
     for position in positional_data:
         angle = position[0]
@@ -152,14 +147,13 @@ def apply_binaural_filtering(input_signal, positional_data):
             # Convolve the IRs with the input and put it into output
 
     output = np.append(output_ear_right.transpose(), output_ear_left.transpose(), axis=1)
-    print("playing non real time output")
-    sd.play(output)
-    sd.wait()
+    # print("playing non real time output")
+    # sd.play(output)
+    # sd.wait()
     return output
 
 
 def apply_binaural_filtering_mono(input_signal, positional_data):
-
     sofa_0_5 = sofa.Database.open('../dependencies/impulse_responses/QU_KEMAR_anechoic_0_5m.sofa')
     sofa_1 = sofa.Database.open('../dependencies/impulse_responses/QU_KEMAR_anechoic_1m.sofa')
     sofa_2 = sofa.Database.open('../dependencies/impulse_responses/QU_KEMAR_anechoic_2m.sofa')
@@ -216,7 +210,6 @@ def apply_binaural_filtering_mono(input_signal, positional_data):
 
 
 def split_audio_data(data):
-
     positional_data = []
     reverb_data = []
     elapsed_duration_positional = 0
@@ -244,7 +237,6 @@ def split_audio_data(data):
     positional_data.append([current_position[0], current_position[1], elapsed_duration_positional])
     print("pos data; ", positional_data)
     return positional_data, reverb_data
-
 
 # sampling_freq = 48000
 # sd.default.samplerate = sampling_freq

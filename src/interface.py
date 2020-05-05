@@ -112,7 +112,7 @@ class CreatorInterface(Interface):
         super().__init__()
         pygame.display.set_caption("3DAB CREATOR")
 
-        self.screen = pygame.display.set_mode((1280, 720), 1, 16)
+        self.screen = pygame.display.set_mode((1920, 1080), 1, 16)
         self.screen_ratio_to_default = self.screen.get_width() / self.DEFAULT_DIMS[0]
 
         self.Widget.initial_scale_value = self.screen_ratio_to_default
@@ -123,8 +123,10 @@ class CreatorInterface(Interface):
                 pause_button=self.Button(pygame.image.load('../dependencies/images/pause_button.png'), [0.872, 0.300],
                                          False),
                 save_button=self.Button(pygame.image.load('../dependencies/images/save_button.png'), [0.872, 0.565]),
-                discard_button=self.Button(pygame.image.load('../dependencies/images/discard_button.png'),
-                                           [0.660, 0.565]),
+                edit_button=self.Button(pygame.image.load('../dependencies/images/edit_button.png'),
+                                        [0.660, 0.565]),
+                editing_button=self.Button(pygame.image.load('../dependencies/images/editing_button.png'),
+                                           [0.660, 0.565], False),
                 rec_start_button=self.Button(pygame.image.load('../dependencies/images/record_start_button.png'),
                                              [0.660, 0.300]),
                 rec_stop_button=self.Button(pygame.image.load('../dependencies/images/record_stop_button.png'),
@@ -133,11 +135,11 @@ class CreatorInterface(Interface):
             dict(
                 rec_text=self.TextField([0.658, 0.115], "Record", 41, True),
                 play_text=self.TextField([0.870, 0.115], "Play", 41, True),
-                edit_text=self.TextField([0.658, 0.642], "Edit audio", 21, True),
-                save_text=self.TextField([0.870, 0.642], "Save", 21, True),
+                edit_text=self.TextField([0.658, 0.652], "Edit audio", 21, True),
+                save_text=self.TextField([0.870, 0.652], "Save", 21, True),
                 record_time_text=self.TextField([0.759, 0.780], "Recorded time", 46, True),
-                recorded_timer=self.TextField([0.659, 0.880], "00:00/", 103, True), # Martin Use this
-                total_time_timer=self.TextField([0.859, 0.880], "00:27", 103, True), # and this
+                recorded_timer=self.TextField([0.674, 0.880], "00:00/", 123, True),  # Martin Use this
+                total_time_timer=self.TextField([0.834, 0.880], "00:27", 123, True),  # and this
                 anechoic_text=self.TextField([0.114, 0.974], "Anechoic", 21, True),
                 forest_text=self.TextField([0.217, 0.974], "Forest", 21, True),
                 church_text=self.TextField([0.321, 0.974], "Church", 21, True),
@@ -147,8 +149,7 @@ class CreatorInterface(Interface):
 
         self.audio_controller = self.AudioController(
             self.Button(pygame.image.load('../dependencies/images/head.png'), [0.269, 0.39]),
-            self.Button(pygame.image.load('../dependencies/images/circle.png'), [0.2685, 0.389]),
-            self.Button(pygame.image.load('../dependencies/images/jakub.png'), [0.269, 0.4]),
+            self.Button(pygame.image.load('../dependencies/images/marker.png'), [0.269, 0.4]),
             dict(
                 anechoic=self.Button(pygame.image.load('../dependencies/images/anechoic.png'), [0.114, 0.890]),
                 forest=self.Button(pygame.image.load('../dependencies/images/forest.png'), [0.217, 0.890]),
@@ -159,13 +160,12 @@ class CreatorInterface(Interface):
 
     class AudioController:
 
-        def __init__(self, head, circle, selection, reverb_buttons):
+        def __init__(self, head, selection, reverb_buttons):
             self.head = head
-            self.circle = circle
             self.selection = selection
             self.reverb_buttons = reverb_buttons
 
-            self.radii = [0.2, 0.4, 0.8, 1.2]
+            self.radii = [0.001, 0.3, 0.58, 0.8]
             # self.radii = [0.5, 1, 2, 3]
 
             self.current_audio_data = dict(angle=-1, radius=0, reverb="anechoic")
@@ -173,17 +173,17 @@ class CreatorInterface(Interface):
             self.full_audio_data = []
 
         def display(self, surface):
-            self.head.display(surface)
+            self.head.display(surface, 0, 0.9)
 
-            for r in self.radii:
-                self.circle.display(surface, 0, r)
+            # for r in self.radii:
+            #    # self.circle.display(surface, 0, r)
 
             if self.current_audio_data["radius"] > 0:
                 selection_pos = self.head.get_moved_by_polar(surface, (
-                    self.current_audio_data["radius"] * self.circle.radius, self.current_audio_data["angle"]))
+                    self.current_audio_data["radius"] * self.head.radius, self.current_audio_data["angle"]))
 
                 pygame.draw.circle(surface, (253, 92, 92), selection_pos, 20)
-                # self.selection.display(surface, 0, 0.3)
+                self.selection.display(surface, 0, 0)
 
             for button in self.reverb_buttons.values():
                 if button.shown:
@@ -192,7 +192,7 @@ class CreatorInterface(Interface):
                     else:
                         button.display(surface, 0, 1 if not button.hovered else 1.1)
 
-        def check_events(self, surface, mouse_data, playback_state):
+        def check_events(self, surface, mouse_data, edit_state, playback_state):
 
             for reverb_button in self.reverb_buttons.values():
                 mouse_inside = reverb_button.get_euclidean_distance(surface, mouse_data["pos"]) < reverb_button.radius
@@ -208,47 +208,47 @@ class CreatorInterface(Interface):
             if self.reverb_buttons["cave"].pressed:
                 self.current_audio_data["reverb"] = "cave"
 
-            distance_to_mouse = self.circle.get_euclidean_distance(surface, mouse_data["pos"])
-            mouse_inside = distance_to_mouse < self.circle.radius * 1.4 and mouse_data["pressed"]
+            distance_to_mouse = self.head.get_euclidean_distance(surface, mouse_data["pos"])
+            mouse_inside = distance_to_mouse < self.head.radius * 1.4 and mouse_data["pressed"]
 
             if mouse_inside:
                 self.current_audio_data["angle"] = self.head.get_angle(surface, mouse_data["pos"])
-                shortest_distance = self.circle.radius * 1.4
+                shortest_distance = self.head.radius * 1.4
                 self.current_audio_data["radius"] = 0
                 for r in self.radii:
-                    distance = np.abs(distance_to_mouse - self.circle.radius * r)
+                    distance = np.abs(distance_to_mouse - self.head.radius * r)
                     if distance < shortest_distance:
                         shortest_distance = distance
                         self.current_audio_data["radius"] = r
 
-            if playback_state["started"]:
-                playback_state["stopped"] = False
+            if edit_state["started"]:
+                edit_state["stopped"] = False
                 self.previous_audio_data = self.current_audio_data.copy()
 
-            if playback_state["in_process"]:
+            if edit_state["in_process"]:
 
                 if self.current_audio_data["angle"] != self.previous_audio_data["angle"] or \
                         self.current_audio_data["radius"] != self.previous_audio_data["radius"] or \
                         self.current_audio_data["reverb"] != self.previous_audio_data["reverb"]:
 
                     if len(self.full_audio_data) > 0:
-                        position_time = playback_state["timer"].get_time() - np.sum(
+                        position_time = edit_state["timer"].get_time() - np.sum(
                             np.array(self.full_audio_data)[:, 1])
                         self.full_audio_data.append((self.previous_audio_data, position_time))
                     else:
-                        position_time = playback_state["timer"].get_time()
+                        position_time = edit_state["timer"].get_time()
                         self.full_audio_data.append((self.previous_audio_data, position_time))
 
                     self.previous_audio_data = self.current_audio_data.copy()
 
-            if playback_state["stopped"]:
+            if edit_state["stopped"]:
 
                 print("stopped")
                 if len(self.full_audio_data) > 0:
-                    position_time = playback_state["timer"].get_time() - np.sum(np.array(self.full_audio_data)[:, 1])
+                    position_time = edit_state["timer"].get_time() - np.sum(np.array(self.full_audio_data)[:, 1])
                     self.full_audio_data.append((self.previous_audio_data, position_time))
                 else:
-                    position_time = playback_state["timer"].get_time()
+                    position_time = edit_state["timer"].get_time()
                     self.full_audio_data.append((self.previous_audio_data, position_time))
 
     class AudioManager:
@@ -275,6 +275,8 @@ class CreatorInterface(Interface):
             self.recording_state = dict(started=False, stopped=False, in_process=False, timer=self.Timer())
             self.playback_state = dict(started=False, stopped=False, in_process=False, paused=False, terminated=False,
                                        timer=self.Timer())
+            self.edit_state = dict(started=False, stopped=False, in_process=False, paused=False, terminated=False,
+                                   timer=self.Timer())
 
         def display(self, surface):
 
@@ -292,6 +294,22 @@ class CreatorInterface(Interface):
                 if button.shown:
                     mouse_inside = button.get_euclidean_distance(surface, mouse_data["pos"]) < button.radius
                     button.hovered, button.clicked = mouse_inside, mouse_inside and mouse_data["clicked"]
+
+            self.recording_state["started"] = self.buttons["rec_start_button"].clicked
+            self.recording_state["stopped"] = self.buttons["rec_stop_button"].clicked
+
+            if self.recording_state["started"]:
+                self.recording_state["timer"] = self.Timer()
+                self.recording_state["timer"].start()
+                self.recording_state["in_process"] = True
+                self.buttons["rec_start_button"].replace(self.buttons["rec_stop_button"])
+
+            elif self.recording_state["stopped"]:
+                self.recording_state["timer"].active = False
+                self.recording_state["timer"].join()
+                self.recording_state["stopped"] = True
+                self.recording_state["in_process"] = False
+                self.buttons["rec_stop_button"].replace(self.buttons["rec_start_button"])
 
             self.playback_state["started"] = self.buttons["play_button"].clicked
             self.playback_state["paused"] = self.buttons["pause_button"].clicked
@@ -318,21 +336,30 @@ class CreatorInterface(Interface):
                 self.playback_state["in_process"] = False
                 self.buttons["pause_button"].replace(self.buttons["play_button"])
 
-            self.recording_state["started"] = self.buttons["rec_start_button"].clicked
-            self.recording_state["stopped"] = self.buttons["rec_stop_button"].clicked
+            self.edit_state["started"] = self.buttons["edit_button"].clicked
+            self.edit_state["paused"] = self.buttons["editing_button"].clicked
 
-            if self.recording_state["started"]:
-                self.recording_state["timer"] = self.Timer()
-                self.recording_state["timer"].start()
-                self.recording_state["in_process"] = True
-                self.buttons["rec_start_button"].replace(self.buttons["rec_stop_button"])
+            if self.edit_state["started"]:
+                self.edit_state["timer"] = self.Timer()
+                self.edit_state["timer"].start()
+                self.edit_state["in_process"] = True
+                self.buttons["edit_button"].replace(self.buttons["editing_button"])
 
-            elif self.recording_state["stopped"]:
-                self.recording_state["timer"].active = False
-                self.recording_state["timer"].join()
-                self.recording_state["stopped"] = True
-                self.recording_state["in_process"] = False
-                self.buttons["rec_stop_button"].replace(self.buttons["rec_start_button"])
+            elif self.edit_state["paused"]:
+                self.edit_state["in_process"] = False
+                self.edit_state["paused"] = True
+                self.buttons["editing_button"].replace(self.buttons["edit_button"])
+
+            elif self.edit_state["terminated"]:
+                self.edit_state["stopped"] = True
+                self.edit_state["terminated"] = False
+
+            elif self.edit_state["stopped"]:
+                self.edit_state["timer"].active = False
+                self.edit_state["timer"].join()
+                self.edit_state["stopped"] = False
+                self.edit_state["in_process"] = False
+                self.buttons["editing_button"].replace(self.buttons["edit_button"])
 
             rec_time = int(self.recording_state["timer"].get_time())
             play_time = int(self.playback_state["timer"].get_time())
@@ -359,7 +386,7 @@ class CreatorInterface(Interface):
                 mouse_data["clicked"] = True
 
         self.audio_manager.check_events(self.screen, mouse_data)
-        self.audio_controller.check_events(self.screen, mouse_data, self.audio_manager.playback_state)
+        self.audio_controller.check_events(self.screen, mouse_data, self.audio_manager.edit_state, self.audio_manager.playback_state)
 
         # display all the visuals
         self.screen.fill((40, 45, 46))

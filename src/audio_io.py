@@ -5,7 +5,6 @@ import numpy as np
 import librosa
 import serial
 from scipy.signal import *
-from src.interface import show_error_message
 
 signal, sampling_freq = librosa.load('../dependencies/impulse_responses/church_balcony.wav', sr=44100)
 signal = np.reshape(signal, (-1, 1))
