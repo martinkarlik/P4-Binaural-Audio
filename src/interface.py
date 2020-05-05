@@ -96,7 +96,7 @@ class Interface:
         def __init__(self, pos, shown=True):
             super().__init__(pos, shown)
             self.font = pygame.font.Font('freesansbold.ttf', 32)
-            self.text = "00:00"
+            self.text = ""
 
         def display(self, surface, rotate_value=0, scale_value=1):
             text = self.font.render(self.text, True, (57, 176, 141))
@@ -138,7 +138,7 @@ class CreatorInterface(Interface):
         self.audio_controller = self.AudioController(
             self.Button(pygame.image.load('../dependencies/images/head.png'), [0.269, 0.39]),
             self.Button(pygame.image.load('../dependencies/images/circle.png'), [0.2685, 0.389]),
-            self.Button(pygame.image.load('../dependencies/images/jakub.png'), [0.269, 0.4]),
+            self.Button(pygame.image.load('../dependencies/images/selection.png'), [0.269, 0.4]),
             dict(
                 anechoic=self.Button(pygame.image.load('../dependencies/images/anechoic.png'), [0.114, 0.890]),
                 forest=self.Button(pygame.image.load('../dependencies/images/forest.png'), [0.217, 0.890]),
@@ -163,7 +163,7 @@ class CreatorInterface(Interface):
             self.full_audio_data = []
 
         def display(self, surface):
-            self.head.display(surface)
+            self.head.display(surface, 0, 0.7)
 
             for r in self.radii:
                 self.circle.display(surface, 0, r)
@@ -173,7 +173,8 @@ class CreatorInterface(Interface):
                     self.current_audio_data["radius"] * self.circle.radius, self.current_audio_data["angle"]))
 
                 pygame.draw.circle(surface, (253, 92, 92), selection_pos, 20)
-                # self.selection.display(surface, 0, 0.3)
+                # self.selection.pos = np.divide(selection_pos, (1920, 1080))
+                # self.selection.display(surface, 0, 5)
 
             for button in self.reverb_buttons.values():
                 if button.shown:
@@ -234,13 +235,15 @@ class CreatorInterface(Interface):
 
             if playback_state["stopped"]:
 
-                print("stopped")
                 if len(self.full_audio_data) > 0:
                     position_time = playback_state["timer"].get_time() - np.sum(np.array(self.full_audio_data)[:, 1])
                     self.full_audio_data.append((self.previous_audio_data, position_time))
                 else:
                     position_time = playback_state["timer"].get_time()
                     self.full_audio_data.append((self.previous_audio_data, position_time))
+
+        def get_audio_data(self):
+            return np.array(self.full_audio_data)
 
     class AudioManager:
 
@@ -344,6 +347,7 @@ class CreatorInterface(Interface):
             elif event.type == pygame.KEYDOWN and event.unicode == 'c':
                 self.audio_controller.current_audio_data["angle"] = -1
                 self.audio_controller.current_audio_data["radius"] = 0
+                self.audio_controller.current_audio_data["reverb"] = "anechoic"
 
             elif mouse_data["pressed"] and event.type == pygame.MOUSEBUTTONUP:
                 mouse_data["clicked"] = True

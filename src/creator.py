@@ -1,9 +1,3 @@
-import tkinter
-from tkinter import messagebox
-import numpy as np
-import pandas as pd
-import os.path
-
 import sounddevice
 import soundfile as sf
 
@@ -32,7 +26,6 @@ while interface.running:
             interface.audio_manager.recording_state["stopped"] = True
             show_error_message("JAKUB STOP")
 
-    # elif interface.audio_manager.recording_state["in_process"]
 
     elif interface.audio_manager.recording_state["stopped"]:
         try:
@@ -51,7 +44,7 @@ while interface.running:
             show_error_message("Record something first")
 
     elif interface.audio_manager.playback_state["in_process"]:
-        print("Recording in process")
+        # print("Recording in process")
         try:
             if playback.done:
                 interface.audio_manager.playback_state["terminated"] = True
@@ -64,18 +57,17 @@ while interface.running:
     if interface.audio_manager.buttons["save_button"].clicked:  # should be RENDER button
         print("Rendering")
         try:
-            audio_data = interface.audio_controller.full_audio_data
+            audio_data = interface.audio_controller.get_audio_data()
 
             positional_data = []
             reverb_data = []
             if len(audio_data) > 0:
-                positional_data, reverb_data = audio_processing.preprocess_data(recording.get_data(), np.array(audio_data))
+                positional_data, reverb_data = audio_processing.extract_data(recording.get_data(), audio_data)
 
-            # reverb_output = audio_processing.apply_reverb_filtering(recording.get_data(), reverb_data)
-            sf.write("../dependencies/audio_samples/stereo_sample_sk2.wav", recording.get_data(), 48000)
-            binaural_output = audio_processing.apply_binaural_filtering(recording.get_data(), positional_data)
+            reverb_output = audio_processing.apply_reverb_filtering(recording.get_data(), reverb_data)
+            binaural_output = audio_processing.apply_binaural_filtering(reverb_output, positional_data)
 
-            sf.write("../dependencies/audio_samples/binaural_sample_sk2.wav", binaural_output, 48000)
+            sf.write("../dependencies/audio_samples/reverb_and_3d.wav", binaural_output, 48000)
             break
 
 
@@ -96,4 +88,4 @@ while interface.running:
         except AttributeError:
             show_error_message("Record, and play something first")
 
-# TODO naming the recording
+

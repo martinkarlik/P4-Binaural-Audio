@@ -1,12 +1,16 @@
 import numpy as np
 from scipy.signal import *
 import sounddevice as sd
-import soundfile as sf
 import sofa
 import librosa
 
+# REVERB_IR = dict(
+#     forest_ir, _ = librosa.load('../dependencies/impulse_responses/forrest.wav', sr=96000)
+#     church_ir, _ = librosa.load('../dependencies/impulse_responses/church_balcony.wav', sr=96000)
+#     cave_ir, _ = librosa.load('../dependencies/impulse_responses/cave.wav', sr=96000)
+# )
 
-def preprocess_data(rec_data, audio_data):
+def extract_data(rec_data, audio_data):
     total_frames = np.sum(audio_data[:, 1])
     audio_data[:, 1] = np.divide(audio_data[:, 1], total_frames)
 
@@ -47,17 +51,13 @@ def preprocess_data(rec_data, audio_data):
 
 def apply_reverb_filtering(input_signal, reverb_data):
 
-    # output = fftconvolve(input_signal, reverb_impulse, mode="same")
-    # output = np.append(output, output, axis=1)
+    forest_ir, _ = librosa.load('../dependencies/impulse_responses/forrest.wav', sr=96000)
+    church_ir, _ = librosa.load('../dependencies/impulse_responses/church_balcony.wav', sr=96000)
+    cave_ir, _ = librosa.load('../dependencies/impulse_responses/cave.wav', sr=96000)
 
 
-    forest_ir = librosa.load('../dependencies/impulse_responses/forrest.wav')
-    church_ir = librosa.load('../dependencies/impulse_responses/church_balcony.wav')
-    cave_ir = librosa.load('../dependencies/impulse_responses/cave.wav')
-
-
-    input_signal_right_transposed = np.reshape(input_signal[:, 0], (-1, 1)).transpose()
-    input_signal_left_transposed = np.reshape(input_signal[:, 1], (-1, 1)).transpose()
+    input_signal_right = np.reshape(input_signal[:, 0], (-1, 1))
+    input_signal_left = np.reshape(input_signal[:, 1], (-1, 1))
 
     total_samples = len(input_signal)
 
@@ -75,8 +75,8 @@ def apply_reverb_filtering(input_signal, reverb_data):
         end_index = elapsed_duration
 
         if reverb_type == "anechoic":
-            output_ear_right[0, start_index:end_index] = input_signal_right_transposed[0, start_index:end_index]
-            output_ear_left[0, start_index:end_index] = input_signal_left_transposed[0, start_index:end_index]
+            output_ear_right[0, start_index:end_index] = input_signal_right[start_index:end_index, 0]
+            output_ear_left[0, start_index:end_index] = input_signal_left[start_index:end_index, 0]
         else:
             if reverb_type == "forest":
                 reverb_ir = forest_ir
@@ -85,16 +85,16 @@ def apply_reverb_filtering(input_signal, reverb_data):
             else:
                 reverb_ir = cave_ir
 
-            print("Shape input: ", input_signal_right_transposed[0, start_index:end_index].shape)
-            print("Shape ir: ", reverb_ir.shape)
-            print("Output shape: ", output_ear_right[0, start_index:end_index].shape)
-            output_ear_right[0, start_index:end_index] = fftconvolve(input_signal_right_transposed[0, start_index:end_index], reverb_ir, mode="same")
-            output_ear_left[0, start_index:end_index] = fftconvolve(input_signal_left_transposed[0, start_index:end_index], reverb_ir, mode="same")
+            response_right = fftconvolve(input_signal_right[start_index:end_index, 0], reverb_ir, mode="full")[0:duration]
+            response_right = np.divide(response_right, np.abs(np.max(response_right)))
+
+            response_left = fftconvolve(input_signal_left[start_index:end_index, 0], reverb_ir, mode="full")[0:duration]
+            response_left = np.divide(response_left, np.abs(np.max(response_left)))
+
+            output_ear_right[0, start_index:end_index] = response_right
+            output_ear_left[0, start_index:end_index] = response_left
 
     output = np.append(output_ear_right.transpose(), output_ear_left.transpose(), axis=1)
-    print("playing non real time reverb output")
-    sd.play(output)
-    sd.wait()
     return output
 
 
@@ -158,61 +158,61 @@ def apply_binaural_filtering(input_signal, positional_data):
     return output
 
 
-def apply_binaural_filtering_mono(input_signal, positional_data):
-
-    sofa_0_5 = sofa.Database.open('../dependencies/impulse_responses/QU_KEMAR_anechoic_0_5m.sofa')
-    sofa_1 = sofa.Database.open('../dependencies/impulse_responses/QU_KEMAR_anechoic_1m.sofa')
-    sofa_2 = sofa.Database.open('../dependencies/impulse_responses/QU_KEMAR_anechoic_2m.sofa')
-    sofa_3 = sofa.Database.open('../dependencies/impulse_responses/QU_KEMAR_anechoic_3m.sofa')
-
-    hrtf_database = {0.2: sofa_0_5, 0.4: sofa_1, 0.8: sofa_2, 1.2: sofa_3}
-
-    input_signal_transposed = np.reshape(input_signal, (-1, 1)).transpose()
-
-    total_samples = len(input_signal)
-
-    output_ear_right = np.zeros([1, total_samples])
-    output_ear_left = np.zeros([1, total_samples])
-
-    elapsed_duration = 0
-
-    filter_state_unknown = False
-    filter_state_right = np.zeros([2047])
-    filter_state_left = np.zeros([2047])
-
-    for position in positional_data:
-        angle = position[0]
-        radius = position[1]
-        duration = int(position[2])
-
-        start_index = elapsed_duration
-        elapsed_duration += duration
-        end_index = elapsed_duration
-
-        if angle == -1:  # don't apply any filters, output should stay stereo
-            output_ear_right[0, start_index:end_index] = input_signal_transposed[0, start_index:end_index]
-            output_ear_left[0, start_index:end_index] = input_signal_transposed[0, start_index:end_index]
-            filter_state_unknown = True
-        else:
-            ir_ear_right = hrtf_database[radius].Data.IR.get_values(indices={"M": angle, "R": 0, "E": 0})
-            ir_ear_left = hrtf_database[radius].Data.IR.get_values(indices={"M": angle, "R": 1, "E": 0})
-
-            if filter_state_unknown:
-                filter_state_right = lfilter_zi(ir_ear_right, 1)
-                filter_state_left = lfilter_zi(ir_ear_left, 1)
-                filter_state_unknown = False
-
-            output_ear_right[0, start_index:end_index], filter_state_right = \
-                lfilter(ir_ear_right, 1, input_signal_transposed[0, start_index:end_index], zi=filter_state_right)
-            output_ear_left[0, start_index:end_index], filter_state_left = \
-                lfilter(ir_ear_left, 1, input_signal_transposed[0, start_index:end_index], zi=filter_state_left)
-            # Convolve the IRs with the input and put it into output
-
-    output = np.append(output_ear_right.transpose(), output_ear_left.transpose(), axis=1)
-    print("playing non real time output")
-    sd.play(output)
-    sd.wait()
-    return output
+# def apply_binaural_filtering_mono(input_signal, positional_data):
+#
+#     sofa_0_5 = sofa.Database.open('../dependencies/impulse_responses/QU_KEMAR_anechoic_0_5m.sofa')
+#     sofa_1 = sofa.Database.open('../dependencies/impulse_responses/QU_KEMAR_anechoic_1m.sofa')
+#     sofa_2 = sofa.Database.open('../dependencies/impulse_responses/QU_KEMAR_anechoic_2m.sofa')
+#     sofa_3 = sofa.Database.open('../dependencies/impulse_responses/QU_KEMAR_anechoic_3m.sofa')
+#
+#     hrtf_database = {0.2: sofa_0_5, 0.4: sofa_1, 0.8: sofa_2, 1.2: sofa_3}
+#
+#     input_signal_transposed = np.reshape(input_signal, (-1, 1)).transpose()
+#
+#     total_samples = len(input_signal)
+#
+#     output_ear_right = np.zeros([1, total_samples])
+#     output_ear_left = np.zeros([1, total_samples])
+#
+#     elapsed_duration = 0
+#
+#     filter_state_unknown = False
+#     filter_state_right = np.zeros([2047])
+#     filter_state_left = np.zeros([2047])
+#
+#     for position in positional_data:
+#         angle = position[0]
+#         radius = position[1]
+#         duration = int(position[2])
+#
+#         start_index = elapsed_duration
+#         elapsed_duration += duration
+#         end_index = elapsed_duration
+#
+#         if angle == -1:  # don't apply any filters, output should stay stereo
+#             output_ear_right[0, start_index:end_index] = input_signal_transposed[0, start_index:end_index]
+#             output_ear_left[0, start_index:end_index] = input_signal_transposed[0, start_index:end_index]
+#             filter_state_unknown = True
+#         else:
+#             ir_ear_right = hrtf_database[radius].Data.IR.get_values(indices={"M": angle, "R": 0, "E": 0})
+#             ir_ear_left = hrtf_database[radius].Data.IR.get_values(indices={"M": angle, "R": 1, "E": 0})
+#
+#             if filter_state_unknown:
+#                 filter_state_right = lfilter_zi(ir_ear_right, 1)
+#                 filter_state_left = lfilter_zi(ir_ear_left, 1)
+#                 filter_state_unknown = False
+#
+#             output_ear_right[0, start_index:end_index], filter_state_right = \
+#                 lfilter(ir_ear_right, 1, input_signal_transposed[0, start_index:end_index], zi=filter_state_right)
+#             output_ear_left[0, start_index:end_index], filter_state_left = \
+#                 lfilter(ir_ear_left, 1, input_signal_transposed[0, start_index:end_index], zi=filter_state_left)
+#             # Convolve the IRs with the input and put it into output
+#
+#     output = np.append(output_ear_right.transpose(), output_ear_left.transpose(), axis=1)
+#     print("playing non real time output")
+#     sd.play(output)
+#     sd.wait()
+#     return output
 
 
 def split_audio_data(data):
