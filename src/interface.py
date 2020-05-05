@@ -136,7 +136,7 @@ class CreatorInterface(Interface):
                 edit_text=self.TextField([0.658, 0.642], "Edit audio", 21, True),
                 save_text=self.TextField([0.870, 0.642], "Save", 21, True),
                 record_time_text=self.TextField([0.759, 0.780], "Recorded time", 46, True),
-                recorded_timer=self.TextField([0.659, 0.880], "00:00/", 103, True), # Use this
+                recorded_timer=self.TextField([0.659, 0.880], "00:00/", 103, True), # Martin Use this
                 total_time_timer=self.TextField([0.859, 0.880], "00:27", 103, True), # and this
                 anechoic_text=self.TextField([0.114, 0.974], "Anechoic", 21, True),
                 forest_text=self.TextField([0.217, 0.974], "Forest", 21, True),
