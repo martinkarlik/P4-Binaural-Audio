@@ -6,7 +6,7 @@ import librosa
 import serial
 from scipy.signal import *
 
-# signal, sampling_freq = librosa.load('../dependencies/impulse_responses/church_balcony.wav', sr=44100)
+signal, sampling_freq = librosa.load('../dependencies/impulse_responses/church_balcony.wav', sr=44100)
 # signal = np.reshape(signal, (-1, 1))
 # hrtf_database = sofa.Database.open('../dependencies/impulse_responses/QU_KEMAR_anechoic_1m.sofa')
 # ir_ear1 = hrtf_database.Data.IR.get_values(indices={"M": 1, "R": 0, "E": 0})
@@ -26,7 +26,7 @@ class RecordingThread(AudioIOThread):
 
     def __init__(self):
         super().__init__()
-        self.rec_data = np.array([[]])
+        self.rec_data = np.array([])
 
         self.rec_stream = sd.InputStream(samplerate=self.sampling_freq, channels=2, blocksize=self.chunk_samples,
                                          callback=self.callback)
@@ -77,13 +77,14 @@ class DynamicPlaybackThread(PlaybackThread):
         self.filter_state_unknown = True
 
         self.chunk_index = 0
+        self.pos_index = 0
 
         sofa_0_5 = sofa.Database.open('../dependencies/impulse_responses/QU_KEMAR_anechoic_0_5m.sofa')
         sofa_1 = sofa.Database.open('../dependencies/impulse_responses/QU_KEMAR_anechoic_1m.sofa')
         sofa_2 = sofa.Database.open('../dependencies/impulse_responses/QU_KEMAR_anechoic_2m.sofa')
         sofa_3 = sofa.Database.open('../dependencies/impulse_responses/QU_KEMAR_anechoic_3m.sofa')
 
-        self.hrtf_database = {0.2: sofa_0_5, 0.4: sofa_1, 0.8: sofa_2, 1.2: sofa_3}
+        self.hrtf_database = {0.225: sofa_0_5, 0.55: sofa_1, 0.775: sofa_2, 1: sofa_3}
 
         self.play_stream = sd.OutputStream(samplerate=self.sampling_freq, channels=2, blocksize=self.chunk_samples,
                                            callback=self.callback)
@@ -95,103 +96,68 @@ class DynamicPlaybackThread(PlaybackThread):
         self.gyroscope.run()
 
     def callback(self, outdata, frames, time, status):
-        if self.gyroscope.gyro_is_ready() and self.gyroscope.gyro_connected:
-            corresponding_sample = self.chunk_index * frames + frames / 2
 
-            elapsed_samples = self.positional_data[0][2]
-            pos_index = 0
-            while elapsed_samples < corresponding_sample:
-                pos_index += 1
-                elapsed_samples += self.positional_data[pos_index][2]
+        # The idea here is to get the sample in the middle of the current chunk and find which positional data
+        # corresponds to it. That position will be applied to the entire chunk. Say chunk length is 1024, so
+        # our reference_sample is 512. If positional data is [(pos info, 500 samples), (different pos info, 400 samples)],
+        # then we will apply the second pos info (512 is 12 samples into the second pos) on the entire chunk,
+        # simply because it is the most representative of the current chunk.
 
-            angle = self.positional_data[pos_index][0]
-            radius = self.positional_data[pos_index][1]
+        reference_sample = self.chunk_index * frames + frames / 2
+        elapsed_positional_duration = np.sum(self.positional_data[0:self.pos_index + 1, 2])
 
-            start_index = self.chunk_index * frames
-            end_index = (self.chunk_index + 1) * frames
+        while elapsed_positional_duration < reference_sample and self.pos_index + 1 < len(self.positional_data):
+            self.pos_index += 1
+            elapsed_positional_duration += self.positional_data[self.pos_index, 2]
 
-            gyro_data = self.gyroscope.get_gyro_data()
-            print("gotten: ", gyro_data)
+        start_index = self.chunk_index * frames
+        end_index = (self.chunk_index + 1) * frames
 
-            if angle == -1:  # don't apply any filters, output should stay stereo
-                outdata[:, 0] = self.play_data[0, start_index:end_index]
-                outdata[:, 1] = self.play_data[1, start_index:end_index]
-                self.filter_state_unknown = True
-            else:
-                if angle > gyro_data:
-                    ir_ear_right = self.hrtf_database[radius].Data.IR.get_values(
-                        indices={"M": int(abs(angle - gyro_data)), "R": 0, "E": 0})
-                    ir_ear_left = self.hrtf_database[radius].Data.IR.get_values(
-                        indices={"M": int(abs(angle - gyro_data)), "R": 1, "E": 0})
-                else:
-                    ir_ear_right = self.hrtf_database[radius].Data.IR.get_values(
-                        indices={"M": int((angle + gyro_data) % 360), "R": 0, "E": 0})
-                    ir_ear_left = self.hrtf_database[radius].Data.IR.get_values(
-                        indices={"M": int((angle + gyro_data) % 360), "R": 1, "E": 0})
+        azimuth_angle = self.positional_data[self.pos_index][0]
+        radius = self.positional_data[self.pos_index][1]
 
-                if self.filter_state_unknown:
-                    self.filter_state_right = np.zeros(2047)
-                    self.filter_state_left = np.zeros(2047)
-                    self.filter_state_unknown = False
+        if azimuth_angle == -1:  # don't apply any filters, don't even ask for gyro, output should stay stereo
+            outdata[:, 0] = self.play_data[0, start_index:end_index]
+            outdata[:, 1] = self.play_data[1, start_index:end_index]
+            self.filter_state_unknown = True
 
-                outdata[:, 0], self.filter_state_right = \
-                    lfilter(ir_ear_right, 1, self.play_data[0, start_index:end_index], zi=self.filter_state_right)
-                outdata[:, 1], self.filter_state_left = \
-                    lfilter(ir_ear_left, 1, self.play_data[1, start_index:end_index], zi=self.filter_state_left)
-
-            self.chunk_index += 1
-
-            if self.chunk_index + 1 == len(self.play_data) / frames:
-                self.play_stream.stop()
-                self.gyroscope.close_serial()
-                self.done = True
-                print("stopped")
         else:
-            print("playing without gyro")
-            corresponding_sample = self.chunk_index * frames + frames / 2
-            elapsed_samples = self.positional_data[0][2]
-            pos_index = 0
-            while elapsed_samples < corresponding_sample:
-                pos_index += 1
-                elapsed_samples += self.positional_data[pos_index][2]
 
-            angle = self.positional_data[pos_index][0]
-            radius = self.positional_data[pos_index][1]
-
-            start_index = self.chunk_index * frames
-            end_index = (self.chunk_index + 1) * frames
-
-            if angle == -1:  # don't apply any filters, output should stay stereo
-                outdata[:, 0] = self.play_data[0, start_index:end_index]
-                outdata[:, 1] = self.play_data[1, start_index:end_index]
-                self.filter_state_unknown = True
+            if self.gyroscope.gyro_is_ready() and self.gyroscope.gyro_connected:
+                gyro_data = self.gyroscope.get_gyro_data()
+                angle = int(abs(azimuth_angle - gyro_data)) if azimuth_angle > gyro_data else int((azimuth_angle + gyro_data) % 360)
             else:
-                ir_ear_right = self.hrtf_database[radius].Data.IR.get_values(
-                    indices={"M": angle, "R": 0, "E": 0})
-                ir_ear_left = self.hrtf_database[radius].Data.IR.get_values(
-                    indices={"M": angle, "R": 1, "E": 0})
+                angle = azimuth_angle
 
-                if self.filter_state_unknown:
-                    self.filter_state_right = np.zeros(2047)
-                    self.filter_state_left = np.zeros(2047)
-                    self.filter_state_unknown = False
+            ir_ear_right = self.hrtf_database[radius].Data.IR.get_values(
+                indices={"M": angle, "R": 0, "E": 0})
+            ir_ear_left = self.hrtf_database[radius].Data.IR.get_values(
+                indices={"M": angle, "R": 1, "E": 0})
 
-                outdata[:, 0], self.filter_state_right = \
-                    lfilter(ir_ear_right, 1, self.play_data[0, start_index:end_index], zi=self.filter_state_right)
-                outdata[:, 1], self.filter_state_left = \
-                    lfilter(ir_ear_left, 1, self.play_data[1, start_index:end_index], zi=self.filter_state_left)
+            if self.filter_state_unknown:
+                self.filter_state_right = np.zeros(2047)
+                self.filter_state_left = np.zeros(2047)
+                self.filter_state_unknown = False
 
-            self.chunk_index += 1
+            print("Play data shape: ", self.play_data.shape)
+            print("From to: ", start_index, end_index)
+            outdata[:, 0], self.filter_state_right = \
+                lfilter(ir_ear_right, 1, self.play_data[0, start_index:end_index], zi=self.filter_state_right)
+            outdata[:, 1], self.filter_state_left = \
+                lfilter(ir_ear_left, 1, self.play_data[1, start_index:end_index], zi=self.filter_state_left)
 
-            if self.chunk_index + 1 == len(self.play_data) / frames:
-                self.play_stream.stop()
-                self.done = True
-                print("stopped without gyro")
+        self.chunk_index += 1
+
+        if self.chunk_index == self.play_data.shape[1] / frames:
+            self.play_stream.stop()
+            self.gyroscope.close_serial()
+            self.done = True
+            print("stopped")
 
     def set_data(self, play_data, positional_data=None):
 
         self.play_data = play_data
-        self.positional_data = positional_data
+        self.positional_data = positional_data if positional_data is not None else np.array([-1, 0, len(self.play_data)])
 
 
 class GyroThread(threading.Thread):
@@ -239,3 +205,99 @@ class GyroThread(threading.Thread):
 
     def close_serial(self):
         self.ser.close()
+
+
+# def callback(self, outdata, frames, time, status):
+    #
+    #     if self.gyroscope.gyro_is_ready() and self.gyroscope.gyro_connected:
+    #         gyro_data = self.gyroscope.get_gyro_data()
+    #         print("gotten: ", gyro_data)
+    #
+    #         corresponding_sample = self.chunk_index * frames + frames / 2
+    #         elapsed_samples = self.positional_data[0][2]
+    #         pos_index = 0
+    #         while elapsed_samples < corresponding_sample:
+    #             pos_index += 1
+    #             elapsed_samples += self.positional_data[pos_index][2]
+    #
+    #         angle = self.positional_data[pos_index][0]
+    #         radius = self.positional_data[pos_index][1]
+    #
+    #         start_index = self.chunk_index * frames
+    #         end_index = (self.chunk_index + 1) * frames
+    #
+    #
+    #         if angle == -1:  # don't apply any filters, output should stay stereo
+    #             outdata[:, 0] = self.play_data[0, start_index:end_index]
+    #             outdata[:, 1] = self.play_data[1, start_index:end_index]
+    #             self.filter_state_unknown = True
+    #         else:
+    #             if angle > gyro_data:
+    #                 ir_ear_right = self.hrtf_database[radius].Data.IR.get_values(
+    #                     indices={"M": int(abs(angle - gyro_data)), "R": 0, "E": 0})
+    #                 ir_ear_left = self.hrtf_database[radius].Data.IR.get_values(
+    #                     indices={"M": int(abs(angle - gyro_data)), "R": 1, "E": 0})
+    #             else:
+    #                 ir_ear_right = self.hrtf_database[radius].Data.IR.get_values(
+    #                     indices={"M": int((angle + gyro_data) % 360), "R": 0, "E": 0})
+    #                 ir_ear_left = self.hrtf_database[radius].Data.IR.get_values(
+    #                     indices={"M": int((angle + gyro_data) % 360), "R": 1, "E": 0})
+    #
+    #             if self.filter_state_unknown:
+    #                 self.filter_state_right = np.zeros(2047)
+    #                 self.filter_state_left = np.zeros(2047)
+    #                 self.filter_state_unknown = False
+    #
+    #             outdata[:, 0], self.filter_state_right = \
+    #                 lfilter(ir_ear_right, 1, self.play_data[0, start_index:end_index], zi=self.filter_state_right)
+    #             outdata[:, 1], self.filter_state_left = \
+    #                 lfilter(ir_ear_left, 1, self.play_data[1, start_index:end_index], zi=self.filter_state_left)
+    #
+    #         self.chunk_index += 1
+    #
+    #         if self.chunk_index + 1 == len(self.play_data) / frames:
+    #             self.play_stream.stop()
+    #             self.gyroscope.close_serial()
+    #             self.done = True
+    #             print("stopped")
+    #     else:
+    #         print("playing without gyro")
+    #         corresponding_sample = self.chunk_index * frames + frames / 2
+    #         elapsed_samples = self.positional_data[0][2]
+    #         pos_index = 0
+    #         while elapsed_samples < corresponding_sample:
+    #             pos_index += 1
+    #             elapsed_samples += self.positional_data[pos_index][2]
+    #
+    #         angle = self.positional_data[pos_index][0]
+    #         radius = self.positional_data[pos_index][1]
+    #
+    #         start_index = self.chunk_index * frames
+    #         end_index = (self.chunk_index + 1) * frames
+    #
+    #         if angle == -1:  # don't apply any filters, output should stay stereo
+    #             outdata[:, 0] = self.play_data[0, start_index:end_index]
+    #             outdata[:, 1] = self.play_data[1, start_index:end_index]
+    #             self.filter_state_unknown = True
+    #         else:
+    #             ir_ear_right = self.hrtf_database[radius].Data.IR.get_values(
+    #                 indices={"M": angle, "R": 0, "E": 0})
+    #             ir_ear_left = self.hrtf_database[radius].Data.IR.get_values(
+    #                 indices={"M": angle, "R": 1, "E": 0})
+    #
+    #             if self.filter_state_unknown:
+    #                 self.filter_state_right = np.zeros(2047)
+    #                 self.filter_state_left = np.zeros(2047)
+    #                 self.filter_state_unknown = False
+    #
+    #             outdata[:, 0], self.filter_state_right = \
+    #                 lfilter(ir_ear_right, 1, self.play_data[0, start_index:end_index], zi=self.filter_state_right)
+    #             outdata[:, 1], self.filter_state_left = \
+    #                 lfilter(ir_ear_left, 1, self.play_data[1, start_index:end_index], zi=self.filter_state_left)
+    #
+    #         self.chunk_index += 1
+    #
+    #         if self.chunk_index + 1 == len(self.play_data) / frames:
+    #             self.play_stream.stop()
+    #             self.done = True
+    #             print("stopped without gyro")

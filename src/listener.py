@@ -3,9 +3,7 @@ import numpy as np
 import soundfile as sf
 from src import interface, audio_io
 import tkinter.filedialog as fd
-from src.interface import show_error_message
 
-root = interface.root
 interface = interface.ListenerInterface()
 
 csv_loaded = np.array([[]])
@@ -23,10 +21,10 @@ def load_dependencies():
         csv_loaded = np.array(csv_loaded)
         print(csv_loaded.shape)
     except UnicodeDecodeError:
-        show_error_message("Error wrong file type, expected type .csv")
+        interface.show_error_message("Error wrong file type, expected type .csv")
         load_dependencies()
     except FileNotFoundError:
-        show_error_message("Error no file found")
+        interface.show_error_message("Error no file found")
         load_dependencies()
 
     tempdir = fd.askopenfilename(initialdir="../dependencies/wav_data",
@@ -34,12 +32,13 @@ def load_dependencies():
     try:
         audio_to_play, _ = sf.read(tempdir)
         audio_to_play = np.reshape(audio_to_play, (-1, 2)).transpose()
+        print("Audio to play: ", audio_to_play.shape)
         # print(audio_to_play.shape)
     except (RuntimeError, UnicodeDecodeError):
-        show_error_message("Error wrong file type, expected type .wav")
+        interface.show_error_message("Error wrong file type, expected type .wav")
         load_dependencies()
     except FileNotFoundError:
-        show_error_message("Error no file found")
+        interface.show_error_message("Error no file found")
         load_dependencies()
 
     return csv_loaded, audio_to_play
@@ -47,7 +46,6 @@ def load_dependencies():
 
 while interface.running:
     interface.update()
-    root.withdraw()
 
     if interface.player_controller.buttons["open_file_button"].clicked:
         # try to load in the most recently created csv and audio/wav file
@@ -69,7 +67,7 @@ while interface.running:
         else:
             print("No file found and you can't play nothing, idiot")
             interface.player_controller.playback_state["stopped"] = True
-            show_error_message("Error, no file loaded")
+            interface.show_error_message("Error, no file loaded")
 
     elif interface.player_controller.playback_state["in_process"]:
         if audio_to_play is not None:
