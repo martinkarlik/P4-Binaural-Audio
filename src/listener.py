@@ -6,7 +6,7 @@ import tkinter.filedialog as fd
 
 interface = interface.ListenerInterface()
 
-csv_loaded = np.array([[]])
+csv_loaded = np.array([])
 audio_to_play = None
 playback = None
 
@@ -19,7 +19,6 @@ def load_dependencies():
     try:
         csv_loaded = list(csv.reader(open(tempdir)))
         csv_loaded = np.array(csv_loaded)
-        print(csv_loaded.shape)
     except UnicodeDecodeError:
         interface.show_error_message("Error wrong file type, expected type .csv")
         load_dependencies()
@@ -32,8 +31,6 @@ def load_dependencies():
     try:
         audio_to_play, _ = sf.read(tempdir)
         audio_to_play = np.reshape(audio_to_play, (-1, 2)).transpose()
-        print("Audio to play: ", audio_to_play.shape)
-        # print(audio_to_play.shape)
     except (RuntimeError, UnicodeDecodeError):
         interface.show_error_message("Error wrong file type, expected type .wav")
         load_dependencies()

@@ -18,18 +18,18 @@ HR_IR = {0.225: sofa_0_5, 0.55: sofa_1, 0.775: sofa_2, 1: sofa_3}
 
 # Both REVERB_IR and HR_IR are dictionaries, so that it's easy to access the IRs by their keys.
 # For head-related IRs, it makes sense for the keys to be floats (representing distance), not strings -
-# - that's why the syntax of creating the dictionary is different in both cases, python is just weird about it
+# - that's why the syntax of creating the dictionary is different in both cases, python is just weird about it.
 
 
 def unpack_data(rec_data, filter_data):
     # Receives filter data in form [{angle, distance, reverb_type}, duration in millis] * number of different positions,
     # splits it into binaural filter data and reverb filter data.
-    # Point is, because reverb and 3d are filtered in series, if all you change in edit mode is reverb types,
-    # i.e. you have 17 positions with different reverbs, but the same angle and distance,
-    # we'd like to work with binaural filter data that has only one element:
+    # Point is, because reverb and 3d are filtered in series, we need two different filter datasets.
+    # If all you change in edit mode is reverb types, i.e. you have 17 positions with different reverbs,
+    # but the same angle and distance, we'd like to work with binaural filter data that has only one element:
     # the angle, the distance and the sum of the durations of these 17 "different" positions.
     # You know, otherwise it would be like: "Alright, angle 45 distance 1m for 2 sec, and then angle 45 distance 1m for
-    # 3 sec, oh and now angle 45 distance 1m for 1,6 sec..." Instead of course we want angle 45 distance 1m for 4,6 sec.
+    # 3 sec, oh and now angle 45 distance 1m for 1,5 sec..." Instead of course we want angle 45 distance 1m for 6,5 sec.
     # Same thing the other way. This does that, plus some extra preprocessing work.
 
     # First convert duration of a position in milliseconds into percentage of recording,
@@ -77,13 +77,9 @@ def unpack_data(rec_data, filter_data):
 
 def apply_reverb_filtering(input_signal, reverb_data):
 
-    input_signal_right = np.reshape(input_signal[:, 0], (-1, 1))
-    input_signal_left = np.reshape(input_signal[:, 1], (-1, 1))
+    input_signal_transposed = np.reshape(input_signal, (-1, 2)).transpose()
 
-    total_samples = len(input_signal)
-
-    output_ear_right = np.zeros([1, total_samples])
-    output_ear_left = np.zeros([1, total_samples])
+    output_signal = np.zeros([2, len(input_signal)])
 
     elapsed_duration = 0
 
@@ -96,38 +92,28 @@ def apply_reverb_filtering(input_signal, reverb_data):
         end_index = elapsed_duration
 
         if reverb_type == "anechoic":
-            output_ear_right[0, start_index:end_index] = input_signal_right[start_index:end_index, 0]
-            output_ear_left[0, start_index:end_index] = input_signal_left[start_index:end_index, 0]
+            output_signal[:, start_index:end_index] = input_signal_transposed[:, start_index:end_index]
         else:
-
-            response_right = fftconvolve(input_signal_right[start_index:end_index, 0], REVERB_IR[reverb_type], mode="full")[0:duration]
+            response_right = fftconvolve(input_signal_transposed[0, start_index:end_index], REVERB_IR[reverb_type], mode="full")[0:duration]
             response_right = np.divide(response_right, np.abs(np.max(response_right)))
 
-            response_left = fftconvolve(input_signal_left[start_index:end_index, 0], REVERB_IR[reverb_type], mode="full")[0:duration]
+            response_left = fftconvolve(input_signal_transposed[1, start_index:end_index], REVERB_IR[reverb_type], mode="full")[0:duration]
             response_left = np.divide(response_left, np.abs(np.max(response_left)))
 
-            output_ear_right[0, start_index:end_index] = response_right
-            output_ear_left[0, start_index:end_index] = response_left
+            output_signal[0, start_index:end_index] = response_right
+            output_signal[1, start_index:end_index] = response_left
 
-    output = np.append(output_ear_right.transpose(), output_ear_left.transpose(), axis=1)
-    return output
+    return output_signal.transpose()
 
 
 def apply_binaural_filtering(input_signal, positional_data):
 
-    input_signal_right_transposed = np.reshape(input_signal[:, 0], (-1, 1)).transpose()
-    input_signal_left_transposed = np.reshape(input_signal[:, 1], (-1, 1)).transpose()
+    input_signal_transposed = np.reshape(input_signal, (-1, 2)).transpose()
+    output_signal = np.zeros([len(input_signal), 2])
 
-    total_samples = len(input_signal)
-
-    output_ear_right = np.zeros([1, total_samples])
-    output_ear_left = np.zeros([1, total_samples])
-
-    elapsed_duration = 0
-
-    filter_state_right = np.zeros([2047])
-    filter_state_left = np.zeros([2047])
     filter_state_unknown = False
+    filter_state = np.zeros([2, 2047])
+    elapsed_duration = 0
 
     for position in positional_data:
         angle = position[0]
@@ -139,26 +125,21 @@ def apply_binaural_filtering(input_signal, positional_data):
         end_index = elapsed_duration
 
         if angle == -1:  # don't apply any filters, output should stay stereo, forget the filter state and recalculate it next time
-            output_ear_right[0, start_index:end_index] = input_signal_right_transposed[0, start_index:end_index]
-            output_ear_left[0, start_index:end_index] = input_signal_left_transposed[0, start_index:end_index]
+            output_signal[:, start_index:end_index] = input_signal_transposed[:, start_index:end_index]
             filter_state_unknown = True
         else:
             ir_ear_right = HR_IR[radius].Data.IR.get_values(indices={"M": angle, "R": 0, "E": 0})
             ir_ear_left = HR_IR[radius].Data.IR.get_values(indices={"M": angle, "R": 1, "E": 0})
 
             if filter_state_unknown:
-                filter_state_right = np.zeros([2047])
-                filter_state_left = np.zeros([2047])
+                filter_state[0] = lfilter_zi(ir_ear_right, 1)
+                filter_state[1] = lfilter_zi(ir_ear_left, 1)
                 filter_state_unknown = False
 
-            output_ear_right[0, start_index:end_index], filter_state_right = \
-                lfilter(ir_ear_right, 1, input_signal_right_transposed[0, start_index:end_index], zi=filter_state_right)
-            output_ear_left[0, start_index:end_index], filter_state_left = \
-                lfilter(ir_ear_left, 1, input_signal_left_transposed[0, start_index:end_index], zi=filter_state_left)
+            output_signal[start_index:end_index, 0], filter_state[0] = \
+                lfilter(ir_ear_right, 1, input_signal_transposed[0, start_index:end_index], zi=filter_state[0])
+            output_signal[start_index:end_index, 1], filter_state[1] = \
+                lfilter(ir_ear_left, 1, input_signal_transposed[1, start_index:end_index], zi=filter_state[1])
             # Convolve the IRs with the input and put it into output
 
-    output = np.append(output_ear_right.transpose(), output_ear_left.transpose(), axis=1)
-    return output
-
-
-
+    return output_signal

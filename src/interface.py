@@ -43,6 +43,8 @@ class Interface:
             # You'd think that to calculate angle from 2 positions would be easy, huh? Yeah so did I.
             # Some trigonometry...
 
+            int(x < 0) * (360 + x) + int(x >= 0) * x
+
             if (abs_pos[0] - target[0]) == 0:  # The case when arctan cannot be calculated (when x diff is 0)
                 return 0 if (abs_pos[1] > target[1]) else 180
 
@@ -138,6 +140,7 @@ class CreatorInterface(Interface):
                 pause_button=self.Button(pygame.image.load('../dependencies/images/pause_button.png'), [0.872, 0.300],
                                          False),
                 save_button=self.Button(pygame.image.load('../dependencies/images/save_button.png'), [0.872, 0.565]),
+                open_button=self.Button(pygame.image.load('../dependencies/images/1open_file.png'), [0.766, 0.6]),
                 edit_button=self.Button(pygame.image.load('../dependencies/images/edit_button.png'),
                                         [0.660, 0.565]),
                 editing_button=self.Button(pygame.image.load('../dependencies/images/editing_button.png'),
@@ -185,7 +188,7 @@ class CreatorInterface(Interface):
 
             self.radii = [0.225, 0.55, 0.775, 1]
 
-            self.current_filter_data = dict(angle=-1, radius=0, reverb="anechoic")
+            self.current_filter_data = dict(angle=127, radius=1, reverb="anechoic")
             self.previous_filter_data = self.current_filter_data.copy()
             self.full_filter_data = []
 
@@ -401,7 +404,6 @@ class CreatorInterface(Interface):
                 self.edit_state["in_process"] = False
                 self.edit_state["paused"] = True
                 self.buttons["editing_button"].replace(self.buttons["edit_button"])
-
 
     def update(self):
         mouse_data = dict(pos=pygame.mouse.get_pos(), pressed=pygame.mouse.get_pressed()[0], clicked=False)

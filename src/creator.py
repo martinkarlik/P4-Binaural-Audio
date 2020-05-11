@@ -1,8 +1,10 @@
 import pandas as pd
 import os.path
 
-import sounddevice
+import sounddevice as sd
 import soundfile as sf
+import tkinter.filedialog as fd
+import numpy as np
 
 from src import interface
 from src import audio_processing
@@ -14,9 +16,8 @@ recording = None
 playback = None
 
 reverb_output = None
-binaural_output = None
-
 reverb_data = []
+binaural_output = None
 positional_data = []
 
 number_of_recordings_done = 0
@@ -28,7 +29,7 @@ while interface.running:
         try:
             recording = audio_io.RecordingThread()
             recording.start()
-        except sounddevice.PortAudioError:
+        except sd.PortAudioError:
             interface.audio_manager.recording_state["stopped"] = True
             interface.show_error_message("No recognized microphone.")
 
@@ -85,7 +86,31 @@ while interface.running:
 
             interface.audio_controller.clear_filter_data()
 
+    if interface.audio_manager.buttons["open_button"].clicked:
+        tempdir = fd.askopenfilename(initialdir="../dependencies/audio_samples",
+                                     filetypes=(("Template files", "*.wav"), ("All files", "*")))
+        try:
+            loaded_data, _ = sf.read(tempdir)
+            loaded_data = np.reshape(loaded_data, (-1, 2))
+            recording = audio_io.RecordingThread()
+            recording.set_data(loaded_data)
+
+            rec_time = int(loaded_data.shape[0] / recording.sampling_freq)
+
+            minutes = f"0{rec_time // 60}" if rec_time // 60 < 10 else f"{rec_time // 60}"
+            seconds = f"0{rec_time % 60}" if rec_time % 60 < 10 else f"{rec_time % 60}"
+
+            interface.audio_manager.text_fields["recording_timer"].text = minutes + ":" + seconds
+
+        except (RuntimeError, UnicodeDecodeError):
+            interface.show_error_message("Error wrong file type, expected type .wav")
+        except FileNotFoundError:
+            interface.show_error_message("Error no file found")
+
     if interface.audio_manager.buttons["save_button"].clicked:
+
+        sf.write("../dependencies/audio_samples/didnt_mean_to_save_this.wav", binaural_output, 44100)
+
         # ---------------------------------------- HANDLE CSV FILE -------------------------------------------------
         try:
             csv_file_name = file_names.get_csv_file_path()
@@ -95,11 +120,11 @@ while interface.running:
                     file_names.increase_number_of_recordings_created()
                     csv_file_name = file_names.get_csv_file_path()
                     wav_file_name = file_names.get_wav_file_path()
-                sf.write(wav_file_name, recording.get_data(), audio_io.sampling_freq)
+                sf.write(wav_file_name, recording.get_data(), 44100)
                 pd.DataFrame(positional_data).to_csv(csv_file_name, header=False, index=False)
             else:
                 pd.DataFrame(positional_data).to_csv(csv_file_name, header=False, index=False)
-                sf.write(wav_file_name, recording.get_data(), audio_io.sampling_freq)
+                sf.write(wav_file_name, recording.get_data(), 44100)
 
             print("Saved!")
         except AttributeError:
