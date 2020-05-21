@@ -3,9 +3,9 @@ from scipy.signal import *
 import sofa
 import librosa
 
-forest_ir, _ = librosa.load('../dependencies/impulse_responses/forrest.wav', sr=96000)
-church_ir, _ = librosa.load('../dependencies/impulse_responses/church_balcony.wav', sr=96000)
-cave_ir, _ = librosa.load('../dependencies/impulse_responses/cave.wav', sr=96000)
+forest_ir, _ = librosa.load('../dependencies/impulse_responses/forrest.wav', sr=44100)
+church_ir, _ = librosa.load('../dependencies/impulse_responses/church_balcony.wav', sr=44100)
+cave_ir, _ = librosa.load('../dependencies/impulse_responses/cave.wav', sr=44100)
 
 REVERB_IR = dict(forest=forest_ir, church=church_ir, cave=cave_ir)
 
@@ -18,7 +18,7 @@ HR_IR = {0.225: sofa_0_5, 0.55: sofa_1, 0.775: sofa_2, 1: sofa_3}
 
 # Both REVERB_IR and HR_IR are dictionaries, so that it's easy to access the IRs by their keys.
 # For head-related IRs, it makes sense for the keys to be floats (representing distance), not strings -
-# - that's why the syntax of creating the dictionary is different in both cases, python is just weird about it.
+# - that's why the syntax of creating the dictionary is different in both cases.
 
 
 def unpack_data(rec_data, filter_data):
@@ -72,74 +72,87 @@ def unpack_data(rec_data, filter_data):
     reverb_data.append([current_reverb, elapsed_duration_reverb])
     positional_data.append([current_position[0], current_position[1], elapsed_duration_positional])
 
-    return positional_data, reverb_data
+    return reverb_data, positional_data
 
 
-def apply_reverb_filtering(input_signal, reverb_data):
+def apply_reverb_filtering(input_signal, reverbs_data):
 
-    input_signal_transposed = np.reshape(input_signal, (-1, 2)).transpose()
-
-    output_signal = np.zeros([2, len(input_signal)])
+    input_signal = np.divide(input_signal, np.max(np.abs(input_signal)))
+    output_signal = np.zeros([len(input_signal), 1])
 
     elapsed_duration = 0
 
-    for reverb in reverb_data:
-        reverb_type = reverb[0]
-        duration = reverb[1]
+    for reverb_data in reverbs_data:
+        reverb_type = reverb_data[0]
+        duration = reverb_data[1]
 
         start_index = elapsed_duration
         elapsed_duration += duration
         end_index = elapsed_duration
 
-        if reverb_type == "anechoic":
-            output_signal[:, start_index:end_index] = input_signal_transposed[:, start_index:end_index]
-        else:
-            response_right = fftconvolve(input_signal_transposed[0, start_index:end_index], REVERB_IR[reverb_type], mode="full")[0:duration]
-            response_right = np.divide(response_right, np.abs(np.max(response_right)))
+        output_signal[start_index:end_index] = \
+            filter_reverb(input_signal[start_index:end_index, 0], reverb_type)
 
-            response_left = fftconvolve(input_signal_transposed[1, start_index:end_index], REVERB_IR[reverb_type], mode="full")[0:duration]
-            response_left = np.divide(response_left, np.abs(np.max(response_left)))
+    return output_signal
 
-            output_signal[0, start_index:end_index] = response_right
-            output_signal[1, start_index:end_index] = response_left
 
-    return output_signal.transpose()
+def filter_reverb(input_chunk, reverb_type):
+    output_chunk = np.zeros([input_chunk.shape[0], 1])
+
+    if reverb_type == "anechoic":
+        output_chunk[:, 0] = input_chunk
+    else:
+        response = fftconvolve(input_chunk, REVERB_IR[reverb_type], mode="full")[0: len(input_chunk)]
+        response = np.divide(response, np.abs(np.max(response)))
+
+        output_chunk[:, 0] = response
+
+    return output_chunk
 
 
 def apply_binaural_filtering(input_signal, positional_data):
 
-    input_signal_transposed = np.reshape(input_signal, (-1, 2)).transpose()
+    input_signal = np.divide(input_signal, np.max(np.abs(input_signal)))
     output_signal = np.zeros([len(input_signal), 2])
 
-    filter_state_unknown = False
-    filter_state = np.zeros([2, 2047])
+    filter_state = None
     elapsed_duration = 0
 
     for position in positional_data:
-        angle = position[0]
-        radius = position[1]
-        duration = position[2]
+        current_angle = position[0]
+        current_radius = position[1]
+        current_duration = position[2]
 
         start_index = elapsed_duration
-        elapsed_duration += duration
+        elapsed_duration += current_duration
         end_index = elapsed_duration
 
-        if angle == -1:  # don't apply any filters, output should stay stereo, forget the filter state and recalculate it next time
-            output_signal[:, start_index:end_index] = input_signal_transposed[:, start_index:end_index]
-            filter_state_unknown = True
-        else:
-            ir_ear_right = HR_IR[radius].Data.IR.get_values(indices={"M": angle, "R": 0, "E": 0})
-            ir_ear_left = HR_IR[radius].Data.IR.get_values(indices={"M": angle, "R": 1, "E": 0})
+        output_signal[start_index:end_index, :], filter_state = \
+            filter_binaural(input_signal[start_index:end_index, 0], current_angle, current_radius, filter_state)
 
-            if filter_state_unknown:
-                filter_state[0] = lfilter_zi(ir_ear_right, 1)
-                filter_state[1] = lfilter_zi(ir_ear_left, 1)
-                filter_state_unknown = False
-
-            output_signal[start_index:end_index, 0], filter_state[0] = \
-                lfilter(ir_ear_right, 1, input_signal_transposed[0, start_index:end_index], zi=filter_state[0])
-            output_signal[start_index:end_index, 1], filter_state[1] = \
-                lfilter(ir_ear_left, 1, input_signal_transposed[1, start_index:end_index], zi=filter_state[1])
-            # Convolve the IRs with the input and put it into output
-
+    output_signal = np.divide(output_signal, np.max(np.abs(output_signal)))  # Normalize ||output||
     return output_signal
+
+
+def filter_binaural(input_chunk, angle, radius, filter_state):
+
+    output_chunk = np.zeros([input_chunk.shape[0], 2])
+
+    if angle == -1:
+        output_chunk[:, 0], output_chunk[:, 1] = input_chunk, input_chunk
+        filter_state = None
+    else:
+        ir_ear_right = HR_IR[radius].Data.IR.get_values(indices={"M": angle, "R": 0, "E": 0})
+        ir_ear_left = HR_IR[radius].Data.IR.get_values(indices={"M": angle, "R": 1, "E": 0})
+
+        if filter_state is None:
+            filter_state = np.zeros([2, 2047])
+
+        output_chunk[:, 0], filter_state[0] = \
+            lfilter(ir_ear_right, 1, input_chunk, zi=filter_state[0])
+
+        output_chunk[:, 1], filter_state[1] = \
+            lfilter(ir_ear_left, 1, input_chunk, zi=filter_state[1])
+
+    return output_chunk, filter_state
+

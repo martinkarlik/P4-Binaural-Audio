@@ -7,9 +7,6 @@ from tkinter import messagebox
 import tkinter as t
 
 
-text_blue = (62, 132, 240)
-
-
 class Interface:
     running = True
 
@@ -17,21 +14,22 @@ class Interface:
         pygame.init()
         self.root = t.Tk()
 
-    # This is a static method. You can tell, because if you look carefully, it has a decorated "@staticmethod" above it.
+    # This is a static method. You can tell, because if you look carefully, it has a decorator "@staticmethod" above it.
     # The reason it is static is because back in the day when it wasn't static, pycharm would be like:
     # "Yo make this static!" It does some stuff like if user is stupid it tells them that it's not their fault etc.
 
     @staticmethod
     def show_error_message(message):
-        messagebox.showinfo("Error", message)
+        t.messagebox.showinfo("Error", message)
 
     # This is a Widget class. Originally it was called UI_Element but then I was like Nah let's call it Widget.
     # It represents any UI_Element, such as buttons, text fields, ... I could go on
-    # but I can't cause we don't have nothing else than buttons and text fields. They inherit from Widget.
+    # but I can't because we don't have anything else other than buttons and text fields. They inherit from Widget.
 
     class Widget:
 
         initial_scale_value = 1  # Ratio between current screen dims and default dims.
+        # Using this, we can for example display our interface on the moon and each widget will then be.. pretty big.
 
         def __init__(self, pos, shown=True):
             self.pos = pos
@@ -41,10 +39,8 @@ class Interface:
             abs_pos = self.get_abs_pos(surface)
 
             # You'd think that to calculate angle from 2 positions would be easy, huh? Yeah so did I.
+
             # Some trigonometry...
-
-            int(x < 0) * (360 + x) + int(x >= 0) * x
-
             if (abs_pos[0] - target[0]) == 0:  # The case when arctan cannot be calculated (when x diff is 0)
                 return 0 if (abs_pos[1] > target[1]) else 180
 
@@ -58,19 +54,19 @@ class Interface:
 
             return int((quarter - 1) * 90 + int(quarter == 2 or quarter == 4) * angle + int(quarter == 1 or quarter == 3) * (
                         90 - angle))
-            # Just trust that it gets the angle.
+            # Just trust that it gets the angle. And yes it's probably overcomplicated but, but.. I dunno.
 
-        def get_euclidean_distance(self, surface, target):
+        def get_euclidean_distance(self, surface, target):  # The usual distance, you know, the pythagoras theorem..
             abs_pos = self.get_abs_pos(surface)
             return np.sqrt(np.square(abs_pos[0] - target[0]) + np.square(abs_pos[1] - target[1]))
 
-        def get_manhattan_distance(self, surface, target):
+        def get_manhattan_distance(self, surface, target):  # Chess board distance (4 right, 3 up)
             abs_pos = self.get_abs_pos(surface)
             distance_x = abs(abs_pos[0] - target[0])
             distance_y = abs(abs_pos[1] - target[1])
             return distance_x, distance_y
 
-        def get_moved_by_polar(self, surface, polar):  # Gets absolute position of an object moved by a vector in polar form (angle, distance).
+        def get_moved_by_polar(self, surface, polar):  # Gets absolute position of a widget moved by a vector in polar (distance, angle).
             abs_pos = self.get_abs_pos(surface)
 
             distance = polar[0]
@@ -114,10 +110,11 @@ class Interface:
         def __init__(self, pos, text, size, shown=True):
             super().__init__(pos, shown)
             self.font = pygame.font.Font('C:/Windows/Fonts/segoeuil.ttf', int(size * self.initial_scale_value))
+            self.colour = (62, 132, 240)
             self.text = text
 
         def display(self, surface, rotate_value=0, scale_value=1):
-            text = self.font.render(self.text, True, text_blue)
+            text = self.font.render(self.text, True, self.colour)
             text_rect = text.get_rect(center=self.get_abs_pos(surface))
             surface.blit(text, text_rect)
 
@@ -140,7 +137,7 @@ class CreatorInterface(Interface):
                 pause_button=self.Button(pygame.image.load('../dependencies/images/pause_button.png'), [0.872, 0.300],
                                          False),
                 save_button=self.Button(pygame.image.load('../dependencies/images/save_button.png'), [0.872, 0.565]),
-                open_button=self.Button(pygame.image.load('../dependencies/images/1open_file.png'), [0.766, 0.6]),
+                open_button=self.Button(pygame.image.load('../dependencies/images/1open_file.png'), [0.9, 0.9]),
                 edit_button=self.Button(pygame.image.load('../dependencies/images/edit_button.png'),
                                         [0.660, 0.565]),
                 editing_button=self.Button(pygame.image.load('../dependencies/images/editing_button.png'),
@@ -188,7 +185,7 @@ class CreatorInterface(Interface):
 
             self.radii = [0.225, 0.55, 0.775, 1]
 
-            self.current_filter_data = dict(angle=127, radius=1, reverb="anechoic")
+            self.current_filter_data = dict(angle=-1, radius=0, reverb="anechoic")
             self.previous_filter_data = self.current_filter_data.copy()
             self.full_filter_data = []
 
@@ -476,7 +473,6 @@ class ListenerInterface(Interface):
             self.slider_position = 25
             self.playing_progress = 1
 
-            # self.paused_state = dict(started=False)
             self.playback_state = dict(started=False, stopped=False, in_process=False, paused=False)
 
         def display(self, surface):

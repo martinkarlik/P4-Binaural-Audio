@@ -1,59 +1,48 @@
-import pandas as pd
-import os.path
-
-import sounddevice as sd
-import soundfile as sf
-import tkinter.filedialog as fd
-import numpy as np
-
-from src import interface
-from src import audio_processing
-from src import audio_io
-from src import file_names
+from src import interface, audio_io, audio_processing, files_rw
+from sounddevice import PortAudioError
 
 interface = interface.CreatorInterface()
-recording = None
-playback = None
+file_manager = files_rw.FileManager()
 
-reverb_output = None
-reverb_data = []
-binaural_output = None
-positional_data = []
+recording_thread = None
+playback_thread = None
 
-number_of_recordings_done = 0
+binaural_data = dict(audio_data=None, filter_data=None)
+reverb_data = dict(audio_data=None, filter_data=None)
+
 
 while interface.running:
     interface.update()
 
     if interface.audio_manager.recording_state["started"]:
         try:
-            recording = audio_io.RecordingThread()
-            recording.start()
-        except sd.PortAudioError:
+            recording_thread = audio_io.RecordingThread()
+            recording_thread.start()
+        except PortAudioError:
             interface.audio_manager.recording_state["stopped"] = True
             interface.show_error_message("No recognized microphone.")
 
     elif interface.audio_manager.recording_state["stopped"]:
         try:
-            recording.stop()
+            recording_thread.stop()
         except AttributeError:
-            interface.show_error_message("No recognized microphone")
+            interface.show_error_message("No recognized microphone.")
 
     if interface.audio_manager.playback_state["started"]:
         print("Playback started")
         try:
-            playback = audio_io.PlaybackThread()
-            playback.set_data(binaural_output if binaural_output is not None else recording.get_data())
-            playback.start()
+            playback_thread = audio_io.PlaybackThread()
+            playback_thread.set_data(binaural_data["audio_data"] if binaural_data["audio_data"] is not None else recording_thread.get_data())
+            playback_thread.start()
         except AttributeError:
             interface.audio_manager.playback_state["stopped"] = True
             interface.show_error_message("Record something first.")
 
     elif interface.audio_manager.playback_state["in_process"]:
         try:
-            if playback.done:
+            if playback_thread.done:
                 interface.audio_manager.playback_state["terminated"] = True
-                playback.done = False
+                playback_thread.done = False
                 print("Recording done")
         except AttributeError:
             interface.show_error_message("Record something first.")
@@ -61,41 +50,40 @@ while interface.running:
     if interface.audio_manager.edit_state["started"]:
         print("Editing started")
         try:
-            playback = audio_io.PlaybackThread()
-            playback.set_data(recording.get_data())
-            playback.start()
+            playback_thread = audio_io.PlaybackThread()
+            playback_thread.set_data(recording_thread.get_data())
+            playback_thread.start()
         except AttributeError:
             interface.audio_manager.edit_state["stopped"] = True
             interface.show_error_message("Record something first")
 
     elif interface.audio_manager.edit_state["in_process"]:
 
-        if playback.done:
+        if playback_thread.done:
             interface.audio_manager.edit_state["terminated"] = True
-            playback.done = False
+            playback_thread.done = False
 
     if interface.audio_manager.edit_state["stopped"]:
 
         filter_data = interface.audio_controller.get_filter_data()
 
-        if len(filter_data) > 0 and recording is not None:
-            positional_data, reverb_data = audio_processing.unpack_data(recording.get_data(), filter_data)
+        if len(filter_data) > 0 and recording_thread is not None:
+            reverb_data["filter_data"], binaural_data["filter_data"] = audio_processing.unpack_data(recording_thread.get_data(), filter_data)
 
-            reverb_output = audio_processing.apply_reverb_filtering(recording.get_data(), reverb_data)
-            binaural_output = audio_processing.apply_binaural_filtering(reverb_output, positional_data)
+            reverb_data["audio_data"] = audio_processing.apply_reverb_filtering(recording_thread.get_data(), reverb_data["filter_data"])
+            binaural_data["audio_data"] = audio_processing.apply_binaural_filtering(reverb_data["audio_data"], binaural_data["filter_data"])
 
             interface.audio_controller.clear_filter_data()
 
     if interface.audio_manager.buttons["open_button"].clicked:
-        tempdir = fd.askopenfilename(initialdir="../dependencies/audio_samples",
-                                     filetypes=(("Template files", "*.wav"), ("All files", "*")))
-        try:
-            loaded_data, _ = sf.read(tempdir)
-            loaded_data = np.reshape(loaded_data, (-1, 2))
-            recording = audio_io.RecordingThread()
-            recording.set_data(loaded_data)
 
-            rec_time = int(loaded_data.shape[0] / recording.sampling_freq)
+        try:
+            audio_data = file_manager.open_file_wav("audio_samples")
+
+            recording_thread = audio_io.RecordingThread()
+            recording_thread.set_data(audio_data)
+
+            rec_time = int(audio_data.shape[0] / recording_thread.sampling_freq)
 
             minutes = f"0{rec_time // 60}" if rec_time // 60 < 10 else f"{rec_time // 60}"
             seconds = f"0{rec_time % 60}" if rec_time % 60 < 10 else f"{rec_time % 60}"
@@ -108,24 +96,8 @@ while interface.running:
             interface.show_error_message("Error no file found")
 
     if interface.audio_manager.buttons["save_button"].clicked:
-
-        sf.write("../dependencies/audio_samples/didnt_mean_to_save_this.wav", binaural_output, 44100)
-
-        # ---------------------------------------- HANDLE CSV FILE -------------------------------------------------
         try:
-            csv_file_name = file_names.get_csv_file_path()
-            wav_file_name = file_names.get_wav_file_path()
-            if os.path.isfile(csv_file_name):
-                while os.path.isfile(csv_file_name):
-                    file_names.increase_number_of_recordings_created()
-                    csv_file_name = file_names.get_csv_file_path()
-                    wav_file_name = file_names.get_wav_file_path()
-                sf.write(wav_file_name, recording.get_data(), 44100)
-                pd.DataFrame(positional_data).to_csv(csv_file_name, header=False, index=False)
-            else:
-                pd.DataFrame(positional_data).to_csv(csv_file_name, header=False, index=False)
-                sf.write(wav_file_name, recording.get_data(), 44100)
-
+            file_manager.save_file(reverb_data["audio_data"], binaural_data["filter_data"])
             print("Saved!")
         except AttributeError:
             interface.show_error_message("Record, and play something first")
