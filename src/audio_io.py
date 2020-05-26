@@ -10,7 +10,7 @@ class AudioIOThread(threading.Thread):
     def __init__(self):
         threading.Thread.__init__(self)
         self.sampling_freq = 44100
-        self.chunk_duration = 0.1  # Use the shortest chunk duration your pc can handle.
+        self.chunk_duration = 0.1
         self.chunk_samples = int(self.sampling_freq * self.chunk_duration)
 
 
@@ -24,7 +24,6 @@ class RecordingThread(AudioIOThread):
                                          callback=self.callback)
 
     def callback(self, indata, frames, time, status):
-
         if self.rec_data.size == 0:
             self.rec_data = indata
         else:
@@ -72,6 +71,8 @@ class DynamicPlaybackThread(PlaybackThread):
         self.chunk_index = 0
         self.pos_index = 0
 
+        self.current_position = dict(angle=-1, radius=0)
+
         self.play_stream = sd.OutputStream(samplerate=self.sampling_freq, channels=2, blocksize=self.chunk_samples,
                                            callback=self.callback)
         self.gyroscope = GyroThread()
@@ -100,18 +101,18 @@ class DynamicPlaybackThread(PlaybackThread):
         start_index = self.chunk_index * frames
         end_index = (self.chunk_index + 1) * frames
 
-        azimuth_angle = self.positional_data[self.pos_index][0]
-        current_radius = self.positional_data[self.pos_index][1]
+        self.current_position["angle"] = self.positional_data[self.pos_index][0]
+        self.current_position["radius"] = self.positional_data[self.pos_index][1]
 
-        if azimuth_angle != -1 and self.gyroscope.gyro_connected and self.gyroscope.gyro_is_ready():
+        if self.current_position["angle"] != -1 and self.gyroscope.gyro_connected and self.gyroscope.gyro_is_ready():
             gyro_data = self.gyroscope.get_gyro_data()
-            current_angle = int(abs(azimuth_angle - gyro_data)) if azimuth_angle > gyro_data else int(
-                (azimuth_angle + gyro_data) % 360)
+            angle = int(abs(self.current_position["angle"] - gyro_data)) if self.current_position["angle"] > gyro_data else int(
+                (self.current_position["angle"] + gyro_data) % 360)
         else:
-            current_angle = azimuth_angle
+            angle = self.current_position["angle"]
 
         outdata[:, :], self.filter_state = \
-            audio_processing.filter_binaural(self.play_data[start_index:end_index, 0], current_angle, current_radius, self.filter_state)
+            audio_processing.filter_binaural(self.play_data[start_index:end_index, 0], angle, self.current_position["radius"], self.filter_state)
 
         self.chunk_index += 1
 
@@ -124,6 +125,12 @@ class DynamicPlaybackThread(PlaybackThread):
 
         self.play_data = play_data
         self.positional_data = positional_data
+
+    def get_current_position(self):
+        return self.current_position
+
+    def get_current_rotation(self):
+        return self.gyroscope.get_gyro_data() if self.gyroscope.gyro_connected and self.gyroscope.gyro_is_ready() else 0
 
 
 class GyroThread(threading.Thread):
@@ -141,15 +148,12 @@ class GyroThread(threading.Thread):
             self.ser.open()
             while self.ser.is_open:
                 line = self.ser.readline().decode()
-
-                # the third message, (0,1,2), is waiting for the arduino to receive a message so we send it
+                # the third message, is waiting for the arduino to receive a message so we send it
                 if len(self.received) == 3:
                     # Send a signal to the arduino to get the gyroscope to work
                     self.ser.write(str.encode(" "))
-
                 # waiting for the gyroscope to be ready
                 if len(self.received) < 8:
-                    # time.sleep(1)
                     # The first 3 messages are useless since it is just setup.
                     self.received.append(line)
                     print("Hang tight almost there!")

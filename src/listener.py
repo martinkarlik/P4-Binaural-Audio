@@ -30,8 +30,8 @@ def load_dependencies():
 
     return audio_data, filter_data
 
-
 while interface.running:
+
     interface.update()
 
     if interface.player_controller.buttons["open_file_button"].clicked:
@@ -52,8 +52,14 @@ while interface.running:
             interface.show_error_message("Error, no file loaded.")
 
     elif interface.player_controller.playback_state["in_process"]:
+
+        interface.player_controller.pulse_polar = playback_thread.get_current_position()
+        interface.player_controller.head_rot = playback_thread.get_current_rotation()
+
         if binaural_data["audio_data"] is not None:
             if playback_thread.done:
+                interface.player_controller.pulse_polar["angle"], interface.player_controller.pulse_polar["radius"] = -1, 0
+                interface.player_controller.head_rot = 0
                 interface.player_controller.playback_state["stopped"] = True
                 playback_thread.done = False
 

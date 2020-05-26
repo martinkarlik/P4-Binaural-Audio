@@ -16,7 +16,7 @@ class Interface:
 
     # This is a static method. You can tell, because if you look carefully, it has a decorator "@staticmethod" above it.
     # The reason it is static is because back in the day when it wasn't static, pycharm would be like:
-    # "Yo make this static!" It does some stuff like if user is stupid it tells them that it's not their fault etc.
+    # "Yo make this static!" It does some stuff like if users are stupid it tells them that it's not their fault etc.
 
     @staticmethod
     def show_error_message(message):
@@ -54,7 +54,7 @@ class Interface:
 
             return int((quarter - 1) * 90 + int(quarter == 2 or quarter == 4) * angle + int(quarter == 1 or quarter == 3) * (
                         90 - angle))
-            # Just trust that it gets the angle. And yes it's probably overcomplicated but, but.. I dunno.
+            # Just trust that it gets the angle. And yes it's probably overcomplicated but, but.. whatever.
 
         def get_euclidean_distance(self, surface, target):  # The usual distance, you know, the pythagoras theorem..
             abs_pos = self.get_abs_pos(surface)
@@ -96,9 +96,12 @@ class Interface:
             self.pressed = False
             self.clicked = False
 
-        def display(self, surface, rotate_value=0, scale_value=1):
+        def display(self, surface, rotate_value=0, scale_value=1, alt_pos=None):
             image = pygame.transform.rotozoom(self.image, rotate_value, self.initial_scale_value * scale_value)
-            image_rect = image.get_rect(center=self.get_abs_pos(surface))
+            if not alt_pos:
+                image_rect = image.get_rect(center=self.get_abs_pos(surface))
+            else:
+                image_rect = image.get_rect(center=alt_pos)
             surface.blit(image, image_rect)
 
         def replace(self, other):
@@ -133,29 +136,30 @@ class CreatorInterface(Interface):
 
         self.audio_manager = self.AudioManager(
             dict(
-                play_button=self.Button(pygame.image.load('../dependencies/images/play_button.png'), [0.872, 0.300]),
-                pause_button=self.Button(pygame.image.load('../dependencies/images/pause_button.png'), [0.872, 0.300],
+                play_button=self.Button(pygame.image.load('../dependencies/images/play_button.png'), [0.850, 0.300]),
+                pause_button=self.Button(pygame.image.load('../dependencies/images/pause_button.png'), [0.850, 0.300],
                                          False),
-                save_button=self.Button(pygame.image.load('../dependencies/images/save_button.png'), [0.872, 0.565]),
-                open_button=self.Button(pygame.image.load('../dependencies/images/1open_file.png'), [0.9, 0.9]),
+                save_button=self.Button(pygame.image.load('../dependencies/images/save_button.png'), [0.900, 0.565]),
+                open_button=self.Button(pygame.image.load('../dependencies/images/open_file_button.png'), [0.630, 0.565]),
                 edit_button=self.Button(pygame.image.load('../dependencies/images/edit_button.png'),
-                                        [0.660, 0.565]),
+                                        [0.765, 0.565]),
                 editing_button=self.Button(pygame.image.load('../dependencies/images/editing_button.png'),
-                                           [0.660, 0.565], False),
+                                           [0.765, 0.565], False),
                 rec_start_button=self.Button(pygame.image.load('../dependencies/images/record_start_button.png'),
-                                             [0.660, 0.300]),
+                                             [0.680, 0.300]),
                 rec_stop_button=self.Button(pygame.image.load('../dependencies/images/record_stop_button.png'),
-                                            [0.660, 0.300], False)
+                                            [0.680, 0.300], False)
             ),
             dict(
-                rec_text=self.TextField([0.658, 0.115], "Record", 60, True),
-                play_text=self.TextField([0.870, 0.115], "Play", 60, True),
-                edit_text=self.TextField([0.658, 0.652], "Edit audio", 30, True),
-                save_text=self.TextField([0.870, 0.652], "Save", 30, True),
-                record_time_text=self.TextField([0.759, 0.780], "Recorded time", 35, True),
-                playback_timer=self.TextField([0.7, 0.880], "00:00", 75, True),  # Martin Use this
-                recording_timer=self.TextField([0.82, 0.880], "00:00", 75, True),  # and this
-                slash_symbol=self.TextField([0.76, 0.880], "/", 75, True),
+                rec_text=self.TextField([0.680, 0.115], "Record", 60, True),
+                play_text=self.TextField([0.850, 0.115], "Play", 60, True),
+                edit_text=self.TextField([0.765, 0.652], "Edit audio", 30, True),
+                save_text=self.TextField([0.900, 0.652], "Save", 30, True),
+                open_text=self.TextField([0.630, 0.652], "Open file", 30, True),
+                record_time_text=self.TextField([0.765, 0.780], "Recorded time", 35, True),
+                playback_timer=self.TextField([0.71, 0.880], "00:00", 75, True),
+                recording_timer=self.TextField([0.82, 0.880], "00:00", 75, True),
+                slash_symbol=self.TextField([0.765, 0.880], "/", 75, True),
 
                 n_is_for_narrator=self.TextField([0.269, 0.53], "Press 'N' for Narrator", 25, True),
                 anechoic_text=self.TextField([0.114, 0.974], "Anechoic", 30, True),
@@ -263,6 +267,7 @@ class CreatorInterface(Interface):
                     position_time = edit_state["timer"].get_time()
                     self.full_filter_data.append((self.previous_filter_data, position_time))
 
+
         def get_filter_data(self):
             return np.array(self.full_filter_data)
 
@@ -285,8 +290,6 @@ class CreatorInterface(Interface):
 
             def get_time(self):
                 return time.time() - self.initial_time if self.active else 0.0
-
-                # return self.current_time
 
         def __init__(self, buttons, text_fields):
             self.buttons = buttons
@@ -435,12 +438,10 @@ class ListenerInterface(Interface):
     def __init__(self):
         super().__init__()
         pygame.display.set_caption("3DAB LISTENER")
-        self.screen = pygame.display.set_mode((480, 852), 1, 16)
+        self.screen = pygame.display.set_mode((414, 738), 1, 16)
         self.screen_ratio_to_default = self.screen.get_width() / self.DEFAULT_DIMS[0]
 
         self.Widget.initial_scale_value = self.screen_ratio_to_default
-
-        self.pulse_sound_location = (0.7, 0.4)
 
         self.player_controller = self.PlayerController(dict(
             jump_forward=self.Button(pygame.image.load('../dependencies/images/1jump_forward.png'), [0.8, 0.67]),
@@ -455,7 +456,7 @@ class ListenerInterface(Interface):
 
         ),
 
-            self.Button(pygame.image.load('../dependencies/images/1pulse.png'), self.pulse_sound_location),
+            self.Button(pygame.image.load('../dependencies/images/1pulse.png'), [0.5, 0.25]),
             self.Button(pygame.image.load('../dependencies/images/1slider.png'), [0.5, 0.8]),
             self.Button(pygame.image.load('../dependencies/images/1background.png'), [0.5, 0.5]),
             self.Button(pygame.image.load('../dependencies/images/1head.png'), [0.5, 0.25])
@@ -464,6 +465,9 @@ class ListenerInterface(Interface):
     class PlayerController:
 
         def __init__(self, buttons, pulse, slider, background, head):
+
+            self.pulse_polar = dict(angle=-1, radius=0)
+            self.head_rot = 0
 
             self.pulse = pulse
             self.buttons = buttons
@@ -478,9 +482,13 @@ class ListenerInterface(Interface):
         def display(self, surface):
 
             self.background.display(surface)
-            self.head.display(surface)
+            self.head.display(surface, self.head_rot)
             self.slider.display(surface)
-            self.pulse.display(surface)
+
+            if self.pulse_polar["angle"] != -1:
+                pulse_pos = self.pulse.get_moved_by_polar(surface,
+                            (self.head.radius * self.pulse_polar["radius"] * 4, self.pulse_polar["angle"]))
+                self.pulse.display(surface, 0, 1, pulse_pos)
 
             selection_pos = (self.slider_position, self.slider.get_abs_pos(surface)[1])
             pygame.draw.circle(surface, (112, 199, 172), selection_pos, 20)

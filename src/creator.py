@@ -1,5 +1,6 @@
 from src import interface, audio_io, audio_processing, files_rw
 from sounddevice import PortAudioError
+import soundfile as sf
 
 interface = interface.CreatorInterface()
 file_manager = files_rw.FileManager()
@@ -15,6 +16,7 @@ while interface.running:
     interface.update()
 
     if interface.audio_manager.recording_state["started"]:
+        print("Recording started")
         try:
             recording_thread = audio_io.RecordingThread()
             recording_thread.start()
@@ -96,6 +98,7 @@ while interface.running:
             interface.show_error_message("Error no file found")
 
     if interface.audio_manager.buttons["save_button"].clicked:
+
         try:
             file_manager.save_file(reverb_data["audio_data"], binaural_data["filter_data"])
             print("Saved!")

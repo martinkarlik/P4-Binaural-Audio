@@ -77,7 +77,6 @@ def unpack_data(rec_data, filter_data):
 
 def apply_reverb_filtering(input_signal, reverbs_data):
 
-    input_signal = np.divide(input_signal, np.max(np.abs(input_signal)))
     output_signal = np.zeros([len(input_signal), 1])
 
     elapsed_duration = 0
@@ -93,6 +92,8 @@ def apply_reverb_filtering(input_signal, reverbs_data):
         output_signal[start_index:end_index] = \
             filter_reverb(input_signal[start_index:end_index, 0], reverb_type)
 
+    output_signal = np.divide(output_signal, 1.11 * np.max(np.abs(output_signal)))
+
     return output_signal
 
 
@@ -102,20 +103,16 @@ def filter_reverb(input_chunk, reverb_type):
     if reverb_type == "anechoic":
         output_chunk[:, 0] = input_chunk
     else:
-        response = fftconvolve(input_chunk, REVERB_IR[reverb_type], mode="full")[0: len(input_chunk)]
-        response = np.divide(response, np.abs(np.max(response)))
-
-        output_chunk[:, 0] = response
+        output_chunk[:, 0] = fftconvolve(input_chunk, REVERB_IR[reverb_type], mode="full")[0: len(input_chunk)]
 
     return output_chunk
 
 
 def apply_binaural_filtering(input_signal, positional_data):
 
-    input_signal = np.divide(input_signal, np.max(np.abs(input_signal)))
     output_signal = np.zeros([len(input_signal), 2])
 
-    filter_state = None
+    filter_state = np.zeros([2, 2047])
     elapsed_duration = 0
 
     for position in positional_data:
@@ -130,7 +127,7 @@ def apply_binaural_filtering(input_signal, positional_data):
         output_signal[start_index:end_index, :], filter_state = \
             filter_binaural(input_signal[start_index:end_index, 0], current_angle, current_radius, filter_state)
 
-    output_signal = np.divide(output_signal, np.max(np.abs(output_signal)))  # Normalize ||output||
+    output_signal = np.divide(output_signal, 1.11 * np.max(np.abs(output_signal)))  # Normalize ||output||
     return output_signal
 
 
@@ -148,10 +145,10 @@ def filter_binaural(input_chunk, angle, radius, filter_state):
         if filter_state is None:
             filter_state = np.zeros([2, 2047])
 
-        output_chunk[:, 0], filter_state[0] = \
+        output_chunk[:, 0], filter_state[0, :] = \
             lfilter(ir_ear_right, 1, input_chunk, zi=filter_state[0])
 
-        output_chunk[:, 1], filter_state[1] = \
+        output_chunk[:, 1], filter_state[1, :] = \
             lfilter(ir_ear_left, 1, input_chunk, zi=filter_state[1])
 
     return output_chunk, filter_state
