@@ -7,8 +7,10 @@ The listener tool allows for the playback of the audio, while adjusting the posi
 
 # Screenshots
 
-Listener tool
-<img src="listenerTool.png" width="1000" alt="Listener tool">
+Creation tool <br>
+<img src="creationTool.png" width="800" alt="Creation tool">
 
-Creation tool
-<img src="creationTool.png" width="1000" alt="Creation tool">
+Listener tool <br>
+<img src="listenerTool.png" width="400" alt="Listener tool">
+
+
